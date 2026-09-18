@@ -156,7 +156,7 @@ find. Branch, then merge with `--no-ff`.
 
 Full rules, the `.gitignore` trap (never ignore `logs/`, `traces/`, `reports/` — they *are* the
 deliverable), the Git rules and the pre-submission checklist:
-[`CLAUDE.md §6`](CLAUDE.md#6-repository-version-control--submission-rules) and
+[`CLAUDE.md §6`](CLAUDE.md#6-repository--submission-rules) and
 [`§7`](CLAUDE.md#7-git-section-81-and-section-2-of-the-brief).
 
 ---
