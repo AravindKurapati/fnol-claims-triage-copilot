@@ -1,0 +1,38 @@
+{
+  "claim_id": "CLM-2026-000008",
+  "policy_number": "POL-AU-7723908",
+  "claimant": {
+    "claimant_id": "CLT-217660",
+    "name": "Nikhil Tandon",
+    "email": "n.tandon@example.invalid",
+    "phone": "+91-90000-00106"
+  },
+  "line_of_business": "auto",
+  "reported_at": "2026-09-08T12:30:00Z",
+  "loss_date": "2026-09-07",
+  "loss_location": {
+    "city": "Chennai",
+    "state": "TN",
+    "country": "IN"
+  },
+  "estimated_amount": 310000.0,
+  "currency": "INR",
+  "description": "I had taken the car to the Madras track day event on Sunday. On the third timed lap I lost the rear on the exit of turn six and hit the barrier. The front left suspension and the wheel assembly are damaged. It was an organised event with marshals present.",
+  "police_report_filed": false,
+  "injuries_reported": false,
+  "prior_claims_count": 0,
+  "channel": "web",
+  "attachments": [
+    "track_damage.jpg"
+  ],
+  "_fixture": {
+    "expected_claim_type": "collision",
+    "expected_severity": "major",
+    "expected_coverage_clause": "AUTO-COMP-2026 \u00a76.1",
+    "expected_coverage_status": "not_covered",
+    "expected_fraud_risk": "low",
+    "expected_queue": "standard",
+    "expected_escalation": false,
+    "scenario": "not_covered_exclusion"
+  }
+}

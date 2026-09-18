@@ -1,0 +1,49 @@
+{
+  "CLT-118375": [],
+  "CLT-217660": [],
+  "CLT-329844": [
+    {
+      "amount": 64000.0,
+      "claim_id": "CLM-2025-000677",
+      "loss_date": "2025-12-22",
+      "loss_type": "burglary",
+      "outcome": "settled"
+    }
+  ],
+  "CLT-462290": [],
+  "CLT-551702": [
+    {
+      "amount": 240000.0,
+      "claim_id": "CLM-2025-000318",
+      "loss_date": "2025-10-11",
+      "loss_type": "collision",
+      "outcome": "settled"
+    },
+    {
+      "amount": 310000.0,
+      "claim_id": "CLM-2026-000044",
+      "loss_date": "2026-02-19",
+      "loss_type": "theft",
+      "outcome": "settled"
+    },
+    {
+      "amount": 92000.0,
+      "claim_id": "CLM-2026-000201",
+      "loss_date": "2026-06-03",
+      "loss_type": "collision",
+      "outcome": "withdrawn"
+    }
+  ],
+  "CLT-640918": [],
+  "CLT-773051": [],
+  "CLT-882134": [
+    {
+      "amount": 18500.0,
+      "claim_id": "CLM-2025-000042",
+      "loss_date": "2025-03-04",
+      "loss_type": "glass",
+      "outcome": "settled"
+    }
+  ],
+  "CLT-905413": []
+}

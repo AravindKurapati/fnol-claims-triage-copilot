@@ -1,0 +1,40 @@
+{
+  "claim_id": "CLM-2026-000005",
+  "policy_number": "POL-AU-5518830",
+  "claimant": {
+    "claimant_id": "CLT-640918",
+    "name": "Meera Kulkarni",
+    "email": "meera.k@example.invalid",
+    "phone": "+91-90000-00103"
+  },
+  "line_of_business": "auto",
+  "reported_at": "2026-09-03T16:55:00Z",
+  "loss_date": "2026-09-02",
+  "loss_location": {
+    "city": "Bengaluru",
+    "state": "KA",
+    "country": "IN"
+  },
+  "estimated_amount": 820000.0,
+  "currency": "INR",
+  "description": "A lorry jumped the median on Hosur Road and struck the driver side of my vehicle. The chassis is bent, the airbags deployed and the authorised workshop says the repair will be extensive. I was wearing a seatbelt and was not injured. FIR has been filed.",
+  "police_report_filed": true,
+  "injuries_reported": false,
+  "prior_claims_count": 0,
+  "channel": "agent",
+  "attachments": [
+    "side_impact.jpg",
+    "garage_estimate.pdf",
+    "police_ack.pdf"
+  ],
+  "_fixture": {
+    "expected_claim_type": "collision",
+    "expected_severity": "major",
+    "expected_coverage_clause": "AUTO-COMP-2026 \u00a74.2",
+    "expected_coverage_status": "covered",
+    "expected_fraud_risk": "low",
+    "expected_queue": "standard",
+    "expected_escalation": true,
+    "scenario": "high_value_escalation"
+  }
+}

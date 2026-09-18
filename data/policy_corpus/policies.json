@@ -1,0 +1,211 @@
+{
+  "POL-AU-4471209": {
+    "claimant_id": "CLT-882134",
+    "coverages": [
+      "collision",
+      "theft",
+      "glass",
+      "fire",
+      "third_party_liability"
+    ],
+    "currency": "INR",
+    "deductible": 5000.0,
+    "exclusions": [
+      "racing",
+      "unlicensed_driver",
+      "wear_and_tear",
+      "consequential_loss"
+    ],
+    "expiry_date": "2027-01-14",
+    "inception_date": "2026-01-15",
+    "policy_number": "POL-AU-4471209",
+    "product": "AUTO-COMP-2026",
+    "status": "active",
+    "sum_insured": 900000.0
+  },
+  "POL-AU-5518830": {
+    "claimant_id": "CLT-640918",
+    "coverages": [
+      "collision",
+      "theft",
+      "glass",
+      "fire",
+      "third_party_liability"
+    ],
+    "currency": "INR",
+    "deductible": 7500.0,
+    "exclusions": [
+      "racing",
+      "unlicensed_driver",
+      "wear_and_tear",
+      "consequential_loss"
+    ],
+    "expiry_date": "2027-03-19",
+    "inception_date": "2026-03-20",
+    "policy_number": "POL-AU-5518830",
+    "product": "AUTO-COMP-2026",
+    "status": "active",
+    "sum_insured": 1400000.0
+  },
+  "POL-AU-6642115": {
+    "claimant_id": "CLT-551702",
+    "coverages": [
+      "collision",
+      "theft",
+      "glass",
+      "fire",
+      "third_party_liability"
+    ],
+    "currency": "INR",
+    "deductible": 5000.0,
+    "exclusions": [
+      "racing",
+      "unlicensed_driver",
+      "wear_and_tear",
+      "consequential_loss"
+    ],
+    "expiry_date": "2027-08-01",
+    "inception_date": "2026-08-02",
+    "policy_number": "POL-AU-6642115",
+    "product": "AUTO-COMP-2026",
+    "status": "active",
+    "sum_insured": 750000.0
+  },
+  "POL-AU-7723908": {
+    "claimant_id": "CLT-217660",
+    "coverages": [
+      "collision",
+      "theft",
+      "glass",
+      "fire",
+      "third_party_liability"
+    ],
+    "currency": "INR",
+    "deductible": 5000.0,
+    "exclusions": [
+      "racing",
+      "unlicensed_driver",
+      "wear_and_tear",
+      "consequential_loss"
+    ],
+    "expiry_date": "2027-02-09",
+    "inception_date": "2026-02-10",
+    "policy_number": "POL-AU-7723908",
+    "product": "AUTO-COMP-2026",
+    "status": "active",
+    "sum_insured": 1100000.0
+  },
+  "POL-AU-9914276": {
+    "claimant_id": "CLT-462290",
+    "coverages": [
+      "collision",
+      "theft",
+      "glass",
+      "fire",
+      "third_party_liability"
+    ],
+    "currency": "INR",
+    "deductible": 5000.0,
+    "exclusions": [
+      "racing",
+      "unlicensed_driver",
+      "wear_and_tear",
+      "consequential_loss"
+    ],
+    "expiry_date": "2027-05-11",
+    "inception_date": "2026-05-12",
+    "policy_number": "POL-AU-9914276",
+    "product": "AUTO-COMP-2026",
+    "status": "active",
+    "sum_insured": 850000.0
+  },
+  "POL-HM-2210447": {
+    "claimant_id": "CLT-773051",
+    "coverages": [
+      "fire",
+      "water_damage",
+      "burglary",
+      "storm"
+    ],
+    "currency": "INR",
+    "deductible": 10000.0,
+    "exclusions": [
+      "flood",
+      "gradual_seepage",
+      "unoccupied_premises",
+      "wear_and_tear"
+    ],
+    "expiry_date": "2026-10-31",
+    "inception_date": "2025-11-01",
+    "policy_number": "POL-HM-2210447",
+    "product": "HOME-SHIELD-2026",
+    "status": "active",
+    "sum_insured": 2500000.0
+  },
+  "POL-HM-3390562": {
+    "claimant_id": "CLT-329844",
+    "coverages": [
+      "fire",
+      "water_damage",
+      "burglary",
+      "storm"
+    ],
+    "currency": "INR",
+    "deductible": 10000.0,
+    "exclusions": [
+      "flood",
+      "gradual_seepage",
+      "unoccupied_premises",
+      "wear_and_tear"
+    ],
+    "expiry_date": "2027-08-24",
+    "inception_date": "2026-08-25",
+    "policy_number": "POL-HM-3390562",
+    "product": "HOME-SHIELD-2026",
+    "status": "active",
+    "sum_insured": 1800000.0
+  },
+  "POL-HM-4471028": {
+    "claimant_id": "CLT-905413",
+    "coverages": [
+      "fire",
+      "water_damage",
+      "burglary",
+      "storm"
+    ],
+    "currency": "INR",
+    "deductible": 10000.0,
+    "exclusions": [
+      "flood",
+      "gradual_seepage",
+      "unoccupied_premises",
+      "wear_and_tear"
+    ],
+    "expiry_date": "2026-06-30",
+    "inception_date": "2025-07-01",
+    "policy_number": "POL-HM-4471028",
+    "product": "HOME-SHIELD-2026",
+    "status": "lapsed",
+    "sum_insured": 1200000.0
+  },
+  "POL-LB-8830114": {
+    "claimant_id": "CLT-118375",
+    "coverages": [
+      "bodily_injury",
+      "property_damage"
+    ],
+    "currency": "INR",
+    "deductible": 25000.0,
+    "exclusions": [
+      "intentional_acts",
+      "contractual_liability",
+      "professional_services"
+    ],
+    "expiry_date": "2027-03-31",
+    "inception_date": "2026-04-01",
+    "policy_number": "POL-LB-8830114",
+    "product": "LIAB-GEN-2026",
+    "status": "active",
+    "sum_insured": 5000000.0
+  }
+}

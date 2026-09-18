@@ -1,0 +1,36 @@
+{
+  "claim_id": "CLM-2026-000010",
+  "policy_number": "POL-LB-8830114",
+  "claimant": {
+    "claimant_id": "CLT-118375",
+    "name": "Harpreet Gill",
+    "email": "h.gill@example.invalid",
+    "phone": "+91-90000-00108"
+  },
+  "line_of_business": "liability",
+  "reported_at": "2026-09-17T14:02:00Z",
+  "loss_date": "2026-09-01",
+  "loss_location": {
+    "city": "Gurugram",
+    "state": "HR",
+    "country": "IN"
+  },
+  "estimated_amount": 0.0,
+  "currency": "INR",
+  "description": "Hi, I am not sure if this is the right form. I wanted to know when my policy renews and whether I can add my new office address to it. Also somebody slipped near our reception last month, I don't know if anything will come of it, nobody complained. Can you sort all of this out?",
+  "police_report_filed": false,
+  "injuries_reported": false,
+  "prior_claims_count": 0,
+  "channel": "web",
+  "attachments": [],
+  "_fixture": {
+    "expected_claim_type": "unknown",
+    "expected_severity": "minor",
+    "expected_coverage_clause": null,
+    "expected_coverage_status": "ambiguous",
+    "expected_fraud_risk": "low",
+    "expected_queue": "standard",
+    "expected_escalation": true,
+    "scenario": "ambiguous_out_of_scope"
+  }
+}
