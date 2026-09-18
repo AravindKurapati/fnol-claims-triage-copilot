@@ -1,0 +1,53 @@
+# FNOL Claims-Triage Copilot — approved open-source stack (CLAUDE.md §2)
+# Gemini is the only model provider (Rule R4). pip only; no Docker, no external DB.
+
+# --- agent framework ---
+langgraph>=0.2.60
+langgraph-checkpoint-sqlite>=2.0.0
+langchain-core>=0.3.25
+
+# --- LLM provider: Google Gemini ONLY ---
+langchain-google-genai>=2.0.7
+google-generativeai>=0.8.3
+
+# --- interoperability: MCP ---
+mcp>=1.1.2
+langchain-mcp-adapters>=0.0.5
+
+# --- memory ---
+langmem>=0.0.10
+
+# --- retrieval (local embeddings, no hosted embedding API) ---
+chromadb>=0.5.20
+sentence-transformers>=3.3.0
+
+# --- observability (mandated) ---
+arize-phoenix>=6.0.0
+openinference-instrumentation-langchain>=0.1.29
+opentelemetry-sdk>=1.29.0
+opentelemetry-exporter-otlp>=1.29.0
+
+# --- evaluation & tests ---
+deepeval>=2.0.0
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+
+# --- security ---
+presidio-analyzer>=2.2.355
+presidio-anonymizer>=2.2.355
+llm-guard>=0.3.15
+
+# --- config / runtime ---
+python-dotenv>=1.0.1
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+rich>=13.9.0
+
+# --- reporting (golden signals / dashboard) ---
+pandas>=2.2.0
+pyarrow>=18.0.0
+matplotlib>=3.9.0
+
+# --- bonus (optional) ---
+fastapi>=0.115.0
+uvicorn>=0.32.0

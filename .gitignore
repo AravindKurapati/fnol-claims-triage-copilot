@@ -1,0 +1,35 @@
+# --- secrets (NFR-01) ---
+.env
+.env.local
+*.key
+
+# --- runtime state (regenerable; never committed) ---
+var/
+runs/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.chroma/
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- phoenix local state ---
+.phoenix/
+phoenix.db
+
+# --- deepeval local state (created on import) ---
+.deepeval/
+.deepeval-cache.json
+
+# --- os / editor ---
+.DS_Store
+.vscode/
+.idea/
