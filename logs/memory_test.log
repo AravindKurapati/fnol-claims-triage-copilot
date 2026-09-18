@@ -1,0 +1,16 @@
+2026-09-18 16:52:31,610 | INFO  | === cross-session memory persistence test (AC-05) ===
+2026-09-18 16:52:31,610 | INFO  | memory store: /Users/rachit/Documents/hackathon-final/var/memory.sqlite
+2026-09-18 16:52:31,610 | INFO  | checkpoint store: /Users/rachit/Documents/hackathon-final/var/checkpoints.sqlite
+2026-09-18 16:52:36,977 | INFO  | [session A] thread=t-A wrote memory id=claimant/CLT-***134:fact:477314739652 kind=fact
+2026-09-18 16:52:36,977 | INFO  | [session A] text="claimant's vehicle is garaged overnight at a secured society basement in Baner, which the underwriter applied as a security discount"
+2026-09-18 16:52:36,981 | INFO  | [teardown] store module unloaded; only the on-disk sqlite file remains
+2026-09-18 16:52:38,233 | INFO  | [session B] thread=t-B recalled 1 memory record(s)
+2026-09-18 16:52:38,234 | INFO  | [session B] recall kind=fact text="claimant's vehicle is garaged overnight at a secured society basement in Baner, which the underwriter applied as a security discount"
+2026-09-18 16:52:38,234 | INFO  | [assert] cross-session recall of the session-A fact: PASS
+2026-09-18 16:52:38,234 | INFO  | [assert] fact was not derivable from the session-B query alone: PASS
+2026-09-18 16:52:39,593 | INFO  | [masking] stored text='policy POL-AU-****209 held by CLT-***134'
+2026-09-18 16:52:39,593 | INFO  | [assert] no unmasked identifier in the store: PASS
+2026-09-18 16:52:39,654 | INFO  | [short-term] checkpointer=SqliteSaver config={'configurable': {'thread_id': 't-A'}}
+2026-09-18 16:52:39,655 | INFO  | [short-term] checkpoint rows currently on disk: 0
+2026-09-18 16:52:39,655 | INFO  | [assert] short-term checkpoint store is on disk: PASS
+2026-09-18 16:52:39,655 | INFO  | === end ===
