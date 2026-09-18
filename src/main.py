@@ -128,12 +128,12 @@ async def cmd_run(args: argparse.Namespace) -> int:
         graph = await build_graph(mcp)
         decision = await run_claim(graph, raw, run_id=run_id, thread_id=thread_id)
 
+    path = save_run(decision)
     if args.json:
         print(json.dumps(mask_record(decision.model_dump(mode="json")), indent=2))
     else:
         render(decision)
-        console.print(f"[dim]saved → {save_run(decision).relative_to(ROOT)}[/dim]")
-    save_run(decision)
+        console.print(f"[dim]saved → {path.relative_to(ROOT)}[/dim]")
     return exit_code_for(decision)
 
 
