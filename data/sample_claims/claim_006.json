@@ -1,0 +1,36 @@
+{
+  "claim_id": "CLM-2026-000006",
+  "policy_number": "POL-AU-6642115",
+  "claimant": {
+    "claimant_id": "CLT-551702",
+    "name": "Rohit Barman",
+    "email": "r.barman@example.invalid",
+    "phone": "+91-90000-00104"
+  },
+  "line_of_business": "auto",
+  "reported_at": "2026-09-16T22:41:00Z",
+  "loss_date": "2026-08-20",
+  "loss_location": {
+    "city": "Ghaziabad",
+    "state": "UP",
+    "country": "IN"
+  },
+  "estimated_amount": 690000.0,
+  "currency": "INR",
+  "description": "My car was stolen from outside my friend's building sometime in the night. I did not notice until much later and I have been travelling, which is why I am only reporting it now. I did not file a police complaint because I was told it would take weeks. The car was fully loaded with accessories, it is worth much more than the usual value. Please settle this quickly as I need the money urgently for a family matter.",
+  "police_report_filed": false,
+  "injuries_reported": false,
+  "prior_claims_count": 3,
+  "channel": "web",
+  "attachments": [],
+  "_fixture": {
+    "expected_claim_type": "theft",
+    "expected_severity": "major",
+    "expected_coverage_clause": "AUTO-COMP-2026 \u00a72.3",
+    "expected_coverage_status": "partially_covered",
+    "expected_fraud_risk": "high",
+    "expected_queue": "investigate",
+    "expected_escalation": true,
+    "scenario": "fraud_high_investigate"
+  }
+}

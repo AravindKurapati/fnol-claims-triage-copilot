@@ -1,0 +1,38 @@
+{
+  "claim_id": "CLM-2026-000007",
+  "policy_number": "POL-HM-3390562",
+  "claimant": {
+    "claimant_id": "CLT-329844",
+    "name": "Farida Sheikh",
+    "email": "f.sheikh@example.invalid",
+    "phone": "+91-90000-00105"
+  },
+  "line_of_business": "property",
+  "reported_at": "2026-09-09T10:15:00Z",
+  "loss_date": "2026-09-04",
+  "loss_location": {
+    "city": "Indore",
+    "state": "MP",
+    "country": "IN"
+  },
+  "estimated_amount": 150000.0,
+  "currency": "INR",
+  "description": "We came back from a wedding to find the bedroom almirah open and jewellery and cash missing. The main door lock looks tampered with. I have not filed a police complaint yet because I wanted to check the insurance position first.",
+  "police_report_filed": false,
+  "injuries_reported": false,
+  "prior_claims_count": 1,
+  "channel": "web",
+  "attachments": [
+    "door_lock.jpg"
+  ],
+  "_fixture": {
+    "expected_claim_type": "burglary",
+    "expected_severity": "moderate",
+    "expected_coverage_clause": "HOME-SHIELD-2026 \u00a72.3",
+    "expected_coverage_status": "partially_covered",
+    "expected_fraud_risk": "medium",
+    "expected_queue": "standard",
+    "expected_escalation": false,
+    "scenario": "fraud_medium_standard"
+  }
+}

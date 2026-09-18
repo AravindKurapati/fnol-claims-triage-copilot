@@ -1,0 +1,39 @@
+{
+  "claim_id": "CLM-2026-000004",
+  "policy_number": "POL-HM-2210447",
+  "claimant": {
+    "claimant_id": "CLT-773051",
+    "name": "Devendra Pillai",
+    "email": "d.pillai@example.invalid",
+    "phone": "+91-90000-00102"
+  },
+  "line_of_business": "property",
+  "reported_at": "2026-09-06T08:20:00Z",
+  "loss_date": "2026-09-05",
+  "loss_location": {
+    "city": "Kochi",
+    "state": "KL",
+    "country": "IN"
+  },
+  "estimated_amount": 240000.0,
+  "currency": "INR",
+  "description": "A gas cylinder regulator caught fire in the kitchen on Saturday morning. The fire service attended and put it out within twenty minutes. The kitchen ceiling, the modular units and the adjoining wall are burnt. Nobody was injured.",
+  "police_report_filed": false,
+  "injuries_reported": false,
+  "prior_claims_count": 0,
+  "channel": "phone",
+  "attachments": [
+    "kitchen_fire_1.jpg",
+    "fire_service_note.pdf"
+  ],
+  "_fixture": {
+    "expected_claim_type": "fire",
+    "expected_severity": "moderate",
+    "expected_coverage_clause": "HOME-SHIELD-2026 \u00a74.1",
+    "expected_coverage_status": "covered",
+    "expected_fraud_risk": "low",
+    "expected_queue": "standard",
+    "expected_escalation": false,
+    "scenario": "clean_standard"
+  }
+}

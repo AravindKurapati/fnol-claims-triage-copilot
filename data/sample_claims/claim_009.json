@@ -1,0 +1,38 @@
+{
+  "claim_id": "CLM-2026-000009",
+  "policy_number": "POL-HM-4471028",
+  "claimant": {
+    "claimant_id": "CLT-905413",
+    "name": "Sunita Bose",
+    "email": "s.bose@example.invalid",
+    "phone": "+91-90000-00107"
+  },
+  "line_of_business": "property",
+  "reported_at": "2026-09-03T09:00:00Z",
+  "loss_date": "2026-09-01",
+  "loss_location": {
+    "city": "Kolkata",
+    "state": "WB",
+    "country": "IN"
+  },
+  "estimated_amount": 95000.0,
+  "currency": "INR",
+  "description": "The storm on Monday night tore off part of the roof sheeting over the rear verandah and water came into the back room. I think my renewal premium may not have gone through last month but I have been a customer for years.",
+  "police_report_filed": false,
+  "injuries_reported": false,
+  "prior_claims_count": 0,
+  "channel": "phone",
+  "attachments": [
+    "storm_roof.jpg"
+  ],
+  "_fixture": {
+    "expected_claim_type": "storm",
+    "expected_severity": "moderate",
+    "expected_coverage_clause": "HOME-SHIELD-2026 \u00a73.3",
+    "expected_coverage_status": "not_covered",
+    "expected_fraud_risk": "low",
+    "expected_queue": "standard",
+    "expected_escalation": false,
+    "scenario": "lapsed_policy"
+  }
+}
