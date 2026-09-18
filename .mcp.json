@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "fnol-policy": {
+      "type": "stdio",
+      "command": ".venv/bin/python",
+      "args": ["-m", "mcp_server.server"],
+      "env": {
+        "PYTHONPATH": ".",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--isolated"],
+      "env": {}
+    }
+  }
+}
