@@ -1,6 +1,6 @@
 # Failure-Mode Analysis — FNOL Claims-Triage Copilot
 
-**AC-08 · SPEC-07 §2.4.** Six real failures, found by running the copilot live against Gemini under
+**AC-08 · SPEC-07 §2.4.** Seven real failures, found by running the copilot live against Gemini under
 Arize Phoenix tracing (`python -m src.main run` / `python -m src.main trace`). None was staged. Every
 `run_id` and `span_id` below resolves in the committed trace export `traces/phoenix_spans.parquet`
 (columns `run_id`, `context.span_id`). Tool-log citations point at lines of `logs/tool_calls.jsonl`.
@@ -15,7 +15,7 @@ the runs that verify each fix:
 | `run-042589191502` | after the F-01 fix, claim 001 | 1 | degraded: F-02 |
 | `run-4664e203f3ff` | first full traced batch | 12 | 8 claims degraded: F-03 |
 | `run-61e03b1188df` | batch after F-01…F-03 fixes | 12 | 10/12 route match; F-04, F-05 found |
-| `run-7080f359ae3c` | batch after F-04, F-05 fixes | 12 | F-01…F-05 verified; F-06 found in its spans |
+| `run-7080f359ae3c` | batch after F-04, F-05 fixes | 12 | F-01…F-05 verified; F-06 and F-07 found in its spans and audit log |
 
 ---
 
@@ -172,6 +172,34 @@ the runs that verify each fix:
   `tests/test_failure_regressions.py::test_trace_export_masks_spans_recorded_before_the_fix` and
   `tests/test_failure_regressions.py::test_trace_export_never_masks_the_span_ids_it_is_cited_by`.
 
+### F-07 — The output PII guard redacted the word "Queue" in every escalation instruction
+
+- **Observed:** run_id `run-7080f359ae3c`, claims CLM-2026-000005 and CLM-2026-000006. The output
+  guard's audit records at `logs/agent_actions.jsonl#L334`, `logs/agent_actions.jsonl#L335`,
+  `logs/agent_actions.jsonl#L344` and `logs/agent_actions.jsonl#L345` (action
+  `guardrail_sanitized`, rule `OG-02`, detail `free-text PII redacted (presidio): PERSON`).
+- **Symptom:** the handler-facing escalation instruction for a ₹820,000 claim came out as
+  "Escalate to a human claims handler — high-value claim (820,000 >= 500,000). `<PERSON>`: standard.
+  This is a recommendation, not an approval." The queue label, which is the one thing the handler
+  needs, was replaced by a redaction token. Every escalated claim in the run was affected. The route
+  itself was still correct in state, so route-level evaluation did not catch it. Only the audit trail
+  showed it.
+- **Root cause:** `OG-02` ran Presidio over the whole terminal message. That message is a system
+  template filled from structured values, with no claimant free text in it. The small spaCy NER model
+  behind `src/guardrails/pii.py` tags a capitalised word at the start of a clause ("Queue:") as a
+  PERSON. So the guard was scanning text it did not need to scan, and the scan had false positives.
+- **Fix:** `src/guardrails/output_guard.py::scrub_model_text` scopes `OG-02` to the model-written
+  fields that can actually quote the claimant's narrative (classification evidence, coverage
+  rationale, fraud-indicator evidence) and writes the scrubbed copies back as field updates. The
+  templated terminal message is still checked by `OG-01` (masked identifiers) and `OG-05`
+  (cross-claimant data), but is no longer run through NER.
+- **Verified by:** `tests/test_failure_regressions.py::test_output_pii_guard_leaves_system_templates_intact`
+  (the exact message above passes through unchanged) and
+  `tests/test_failure_regressions.py::test_output_pii_guard_scrubs_model_text_that_quotes_the_narrative`
+  (a third party's name and phone number in classifier evidence are still redacted). The post-fix
+  red-team run (`scripts/redteam.py`) records `OG-02` firing on the classification field, not on the
+  message: `logs/agent_actions.jsonl#L444`.
+
 ---
 
 ## Open finding (not a code defect) — O-01: routing rule vs. fixture oracle on claim 007
@@ -188,11 +216,12 @@ decision on the threshold (`INVESTIGATE_MIN_INDICATORS` in `.env.example`).
 
 ## Patterns
 
-- **Four of the six failures were invisible without running the system live.** F-01, F-02 and F-03
+- **Four of the seven failures were invisible without running the system live.** F-01, F-02 and F-03
   are integration faults (runtime, provider, quota), and each was diagnosed straight from a span's
   status message. That is the argument for tracing *before* evaluation.
-- **Two failures (F-04, F-05) passed the route-level oracle.** Only span-level inspection (the
-  coverage LLM output, the classifier label, the fraud indicator list) exposed them. This is why the
+- **Three failures (F-04, F-05, F-07) passed the route-level oracle.** Only span- or audit-level
+  inspection (the coverage LLM output, the classifier label, the fraud indicator list, the output
+  guard's audit records) exposed them. This is why the
   evaluation (`reports/eval_report.json`) scores clause, type and fraud-risk accuracy, not just the
   queue.
 - **The safety net held.** Across the degraded runs no claim was auto-approved. Every failure
