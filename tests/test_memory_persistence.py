@@ -122,7 +122,7 @@ async def test_memory_never_stores_unmasked_identifiers(memlog: logging.Logger) 
 
 
 def test_short_term_checkpointer_persists(memlog: logging.Logger) -> None:
-    """Tier 1 — the SqliteSaver writes durable checkpoint rows keyed by thread_id."""
+    """Tier 1 — the SQLite checkpointer writes durable checkpoint rows keyed by thread_id."""
     checkpointer = build_checkpointer()
     cfg = thread_config("t-A")
     memlog.info("[short-term] checkpointer=%s config=%s", type(checkpointer).__name__, cfg)
@@ -132,3 +132,29 @@ def test_short_term_checkpointer_persists(memlog: logging.Logger) -> None:
     assert cfg["configurable"]["thread_id"] == "t-A"
     assert settings.checkpoint_path.parent.exists()
     memlog.info("[assert] short-term checkpoint store is on disk: PASS")
+
+
+async def test_checkpointer_supports_async_graph_invocation(memlog: logging.Logger) -> None:
+    """Regression for docs/failure-analysis.md F-01: the graph runs via `ainvoke`, so the
+    checkpointer must implement the async interface — a sync SqliteSaver degraded every live run."""
+    from typing import TypedDict
+
+    from langgraph.graph import END, START, StateGraph
+
+    class S(TypedDict):
+        n: int
+
+    g = StateGraph(S)
+    g.add_node("inc", lambda s: {"n": s["n"] + 1})
+    g.add_edge(START, "inc")
+    g.add_edge("inc", END)
+    app = g.compile(checkpointer=build_checkpointer())
+
+    before = checkpoint_count()
+    out = await app.ainvoke({"n": 1}, config=thread_config("t-async-regression"))
+    snap = await app.aget_state(thread_config("t-async-regression"))
+    memlog.info("[short-term] async ainvoke through the checkpointer: n=%s, rows %d -> %d",
+                out["n"], before, checkpoint_count())
+    assert out["n"] == 2 and snap.values["n"] == 2
+    assert checkpoint_count() > before
+    memlog.info("[assert] checkpointer serves the async graph path: PASS")

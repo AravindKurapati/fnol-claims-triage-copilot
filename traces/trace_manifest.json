@@ -1,0 +1,143 @@
+{
+  "generated_at": "2026-09-19T02:07:45.675490+00:00",
+  "source": "Phoenix project fnol-triage",
+  "producer": "scripts/export_traces.py",
+  "file": "traces/phoenix_spans.parquet",
+  "total_spans": 1061,
+  "runs": {
+    "run-042589191502": {
+      "traces": 1,
+      "spans": 16,
+      "span_kinds": {
+        "CHAIN": 13,
+        "LLM": 3
+      },
+      "claims": [
+        "CLM-2026-000001"
+      ],
+      "tool_spans": [],
+      "first_span": "2026-09-19 01:14:19.513346+00:00"
+    },
+    "run-4664e203f3ff": {
+      "traces": 12,
+      "spans": 219,
+      "span_kinds": {
+        "CHAIN": 176,
+        "LLM": 34,
+        "TOOL": 9
+      },
+      "claims": [
+        "CLM-2026-000001",
+        "CLM-2026-000002",
+        "CLM-2026-000003",
+        "CLM-2026-000004",
+        "CLM-2026-000005",
+        "CLM-2026-000006",
+        "CLM-2026-000007",
+        "CLM-2026-000008",
+        "CLM-2026-000009",
+        "CLM-2026-000010",
+        "CLM-2026-000011",
+        "CLM-2026-000012"
+      ],
+      "tool_spans": [
+        "check_claim_history",
+        "lookup_policy",
+        "retrieve_policy_clauses",
+        "validate_coverage_window"
+      ],
+      "first_span": "2026-09-19 01:32:24.167827+00:00"
+    },
+    "run-4d452c0b72d6": {
+      "traces": 1,
+      "spans": 2,
+      "span_kinds": {
+        "CHAIN": 2
+      },
+      "claims": [
+        "CLM-2026-000001"
+      ],
+      "tool_spans": [],
+      "first_span": "2026-09-19 01:11:35.740421+00:00"
+    },
+    "run-61e03b1188df": {
+      "traces": 12,
+      "spans": 393,
+      "span_kinds": {
+        "CHAIN": 306,
+        "TOOL": 47,
+        "LLM": 40
+      },
+      "claims": [
+        "CLM-2026-000001",
+        "CLM-2026-000002",
+        "CLM-2026-000003",
+        "CLM-2026-000004",
+        "CLM-2026-000005",
+        "CLM-2026-000006",
+        "CLM-2026-000007",
+        "CLM-2026-000008",
+        "CLM-2026-000009",
+        "CLM-2026-000010",
+        "CLM-2026-000011",
+        "CLM-2026-000012"
+      ],
+      "tool_spans": [
+        "check_claim_history",
+        "lookup_policy",
+        "retrieve_policy_clauses",
+        "validate_coverage_window"
+      ],
+      "first_span": "2026-09-19 01:46:50.179353+00:00"
+    },
+    "run-7080f359ae3c": {
+      "traces": 12,
+      "spans": 393,
+      "span_kinds": {
+        "CHAIN": 306,
+        "TOOL": 47,
+        "LLM": 40
+      },
+      "claims": [
+        "CLM-2026-000001",
+        "CLM-2026-000002",
+        "CLM-2026-000003",
+        "CLM-2026-000004",
+        "CLM-2026-000005",
+        "CLM-2026-000006",
+        "CLM-2026-000007",
+        "CLM-2026-000008",
+        "CLM-2026-000009",
+        "CLM-2026-000010",
+        "CLM-2026-000011",
+        "CLM-2026-000012"
+      ],
+      "tool_spans": [
+        "check_claim_history",
+        "lookup_policy",
+        "retrieve_policy_clauses",
+        "validate_coverage_window"
+      ],
+      "first_span": "2026-09-19 01:55:43.413856+00:00"
+    },
+    "run-9d0aa339a50e": {
+      "traces": 1,
+      "spans": 38,
+      "span_kinds": {
+        "CHAIN": 29,
+        "TOOL": 5,
+        "LLM": 4
+      },
+      "claims": [
+        "CLM-2026-000001"
+      ],
+      "tool_spans": [
+        "check_claim_history",
+        "lookup_policy",
+        "retrieve_policy_clauses",
+        "validate_coverage_window"
+      ],
+      "first_span": "2026-09-19 01:30:21.953080+00:00"
+    }
+  }
+}

@@ -1,8 +1,8 @@
 """Tool-invocation logging — AC-07.
 
-PHASE 4 SEAM. The decorator below already wraps every tool in the registry, and already records the
-full AC-07 record shape. Phase 4's job is the marked TODO only: attach the real Phoenix span id.
-Nothing about the call sites changes.
+The `@logged_tool` decorator (src/tools/registry.py) wraps every tool in the registry, opens a Phoenix
+TOOL span per call (src/observability/tracing.py::tool_span) and writes one record here, stamped with
+that span's id so each log line resolves to a span in traces/phoenix_spans.parquet.
 
 Record (AC-07 / SPEC-07 §2.3):
     {timestamp, agent, tool_name, args, result, latency_ms, status, run_id, span_id}
@@ -51,9 +51,9 @@ def log_tool_call(
     """Append one AC-07 record. Masked before write (NFR-05)."""
     settings.logs_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- PHASE 4 TODO: replace with the live Phoenix span id ---
-    #     from src.observability.tracing import span_ids;  _, span_id = span_ids()
-    span_id = None
+    from src.observability.tracing import span_ids
+
+    trace_id, span_id = span_ids()
 
     record = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -64,6 +64,7 @@ def log_tool_call(
         "latency_ms": round(latency_ms, 2),
         "status": status,
         "run_id": current_run_id.get(),
+        "trace_id": trace_id,
         "span_id": span_id,
     }
     with (settings.logs_dir / TOOL_LOG).open("a", encoding="utf-8") as fh:

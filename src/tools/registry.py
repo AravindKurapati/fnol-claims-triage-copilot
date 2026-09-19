@@ -15,7 +15,8 @@ import inspect
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from src.observability.tool_logger import log_tool_call, timed
+from src.observability.tool_logger import current_agent, log_tool_call, timed
+from src.observability.tracing import record_tool_result, tool_span
 
 
 @dataclass
@@ -46,7 +47,8 @@ def logged_tool(
 
             @functools.wraps(fn)
             async def awrapper(*args: Any, **kwargs: Any) -> Any:
-                with timed() as t:
+                bound = _bind(fn, args, kwargs)
+                with tool_span(name, agent=current_agent.get(), args=bound) as span, timed() as t:
                     try:
                         result = await fn(*args, **kwargs)
                         status = "ok"
@@ -57,9 +59,10 @@ def logged_tool(
                         result, status = {"error": f"{type(exc).__name__}: {exc}"}, "error"
                         raise
                     finally:
+                        record_tool_result(span, result=result, status=status)
                         log_tool_call(
                             tool_name=name,
-                            args=_bind(fn, args, kwargs),
+                            args=bound,
                             result=result if status == "ok" else result,
                             latency_ms=t.ms,
                             status=status,
@@ -71,7 +74,8 @@ def logged_tool(
 
             @functools.wraps(fn)
             def swrapper(*args: Any, **kwargs: Any) -> Any:
-                with timed() as t:
+                bound = _bind(fn, args, kwargs)
+                with tool_span(name, agent=current_agent.get(), args=bound) as span, timed() as t:
                     try:
                         result = fn(*args, **kwargs)
                         status = "ok"
@@ -79,9 +83,10 @@ def logged_tool(
                         result, status = {"error": f"{type(exc).__name__}: {exc}"}, "error"
                         raise
                     finally:
+                        record_tool_result(span, result=result, status=status)
                         log_tool_call(
                             tool_name=name,
-                            args=_bind(fn, args, kwargs),
+                            args=bound,
                             result=result,
                             latency_ms=t.ms,
                             status=status,

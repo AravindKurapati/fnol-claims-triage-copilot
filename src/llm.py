@@ -6,7 +6,10 @@ which returns a validated Pydantic object or degrades; nothing in the graph pars
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
+import warnings
 from functools import lru_cache
 from typing import Any, TypeVar
 
@@ -18,6 +21,9 @@ from src.resilience import DegradedResult, with_resilience
 
 log = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
+
+# Gemini 3.x uses fixed sampling; the configured temperature is ignored with a warning per call.
+warnings.filterwarnings("ignore", message=r".*uses fixed sampling defaults.*")
 
 
 @lru_cache(maxsize=4)
@@ -37,6 +43,31 @@ def get_llm(model: str | None = None, temperature: float | None = None) -> Any:
     )
 
 
+class _Pacer:
+    """Spaces model calls to at most `settings.gemini_rpm` per minute (per model id).
+
+    Proactive, so a batch stays under the provider quota instead of discovering it via 429s and
+    degrading claims (docs/failure-analysis.md F-03). `with_resilience` still honours a 429's
+    retry delay if one slips through.
+    """
+
+    def __init__(self) -> None:
+        self._next: dict[str, float] = {}
+        self._lock = asyncio.Lock()
+
+    async def wait(self, model: str) -> None:
+        interval = 60.0 / max(settings.gemini_rpm, 1)
+        async with self._lock:
+            now = time.monotonic()
+            start = max(now, self._next.get(model, 0.0))
+            self._next[model] = start + interval
+        if start > now:
+            await asyncio.sleep(start - now)
+
+
+pacer = _Pacer()
+
+
 async def structured(
     schema: type[T],
     *,
@@ -50,6 +81,7 @@ async def structured(
     messages = [SystemMessage(content=system), HumanMessage(content=user)]
 
     async def _call() -> T:
+        await pacer.wait(settings.gemini_model)
         result = await model.ainvoke(messages)
         if isinstance(result, schema):
             return result
@@ -67,6 +99,7 @@ async def text(
     model = get_llm(temperature=temperature)
 
     async def _call() -> str:
+        await pacer.wait(settings.gemini_model)
         resp = await model.ainvoke(
             [SystemMessage(content=system), HumanMessage(content=user)]
         )
@@ -78,9 +111,14 @@ async def text(
 
 
 def probe() -> tuple[bool, str]:
-    """Cheap startup check the CLI uses to fail fast with a legible message."""
+    """Startup check the CLI uses to fail fast with a legible message.
+
+    Makes one real, tiny model call. Constructing the client proves nothing — a retired model id
+    constructs fine and then 404s on every call, which let a whole batch run degraded behind a
+    "Gemini ready" banner (docs/failure-analysis.md F-02).
+    """
     try:
-        get_llm()
+        get_llm().invoke([HumanMessage(content="Reply with the single word OK.")])
         return True, f"Gemini ready ({settings.gemini_model})"
     except ConfigError as exc:
         return False, str(exc)

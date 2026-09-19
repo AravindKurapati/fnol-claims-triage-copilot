@@ -37,6 +37,7 @@ from src.memory.short_term import build_checkpointer
 from src.models import ClaimRecord, TriageDecision
 from src.observability.audit import emit_audit
 from src.observability.tool_logger import current_agent
+from src.observability.tracing import claim_span
 from src.state import TriageState
 
 log = logging.getLogger(__name__)
@@ -147,9 +148,24 @@ class TriageGraph:
         current_agent.set("supervisor")
         out: dict[str, Any] = {"step_count": state.get("step_count", 0) + 1}
 
+        if out["step_count"] >= settings.max_steps:
+            # Loop guard (SPEC-02 §3.1): `decide_next` now routes to escalate; record why, so the
+            # decision is visibly degraded rather than a silent referral.
+            out["degraded"] = True
+            out["errors"] = [{"component": "supervisor", "kind": "step_limit",
+                              "detail": f"step limit {settings.max_steps} reached"}]
+            emit_audit(actor="supervisor", action="degraded", run_id=state.get("run_id"),
+                       decision={"step_count": out["step_count"]},
+                       rationale=f"step limit {settings.max_steps} reached — escalating")
+            return out
+
         if state.get("intent") is None and state.get("claim") is not None:
             intent = await classify_intent(state)
             out["intent"] = intent
+            if intent.confidence == 0.0 and "model unavailable" in intent.rationale:
+                out["degraded"] = True
+                out["errors"] = [{"component": "supervisor.intent", "kind": "unavailable",
+                                  "detail": intent.rationale}]
             emit_audit(
                 actor="supervisor", action="intent_identified", decision=intent,
                 run_id=state.get("run_id"),
@@ -416,6 +432,19 @@ class TriageGraph:
         return self.app
 
 
+    async def aclose(self) -> None:
+        """Close the checkpointer's aiosqlite connection. Its worker thread is non-daemon: left
+        open, it keeps the CLI process alive after the run has finished."""
+        conn = getattr(self._checkpointer, "conn", None)
+        if conn is not None and hasattr(conn, "close"):
+            try:
+                result = conn.close()
+                if hasattr(result, "__await__"):
+                    await result
+            except Exception as exc:  # noqa: BLE001
+                log.warning("checkpointer close failed: %s", exc)
+
+
 async def build_graph(mcp: MCPToolset | None = None) -> TriageGraph:
     tg = TriageGraph(mcp=mcp)
     tg.build()
@@ -434,7 +463,11 @@ async def run_claim(
         "recursion_limit": settings.max_steps * 2,
     }
     try:
-        final = await graph.app.ainvoke(state, config=config)
+        with claim_span(
+            claim_id=str(raw_claim.get("claim_id", "unknown")), thread_id=thread_id,
+            scenario=(raw_claim.get("_fixture") or {}).get("scenario"),
+        ):
+            final = await graph.app.ainvoke(state, config=config)
         decision = final.get("decision")
         if decision is not None:
             return decision

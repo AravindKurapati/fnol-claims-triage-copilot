@@ -20,7 +20,11 @@ from src.security.masking import mask_record, mask_text
 NODE_ALLOWLIST: dict[str, set[str]] = {
     "supervisor":  {"claim_facts", "untrusted", "memory_recall", "intent"},
     "classifier":  {"claim_facts", "untrusted", "memory_recall"},
-    "coverage":    {"claim_facts", "classification", "retrieved", "policy", "coverage_rules"},
+    # The coverage agent sees the fenced narrative: exclusions turn on *how* a loss happened
+    # (a track day, an unlicensed driver), which only the claimant's account records
+    # (docs/failure-analysis.md F-04). It still reaches the prompt only via render_for_prompt().
+    "coverage":    {"claim_facts", "classification", "retrieved", "policy", "coverage_rules",
+                    "untrusted"},
     "fraud":       {"claim_facts", "classification", "untrusted", "claim_history", "policy"},
     "router":      {"claim_facts", "classification", "coverage", "fraud", "degraded"},
 }
