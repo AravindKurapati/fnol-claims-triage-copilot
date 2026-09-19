@@ -47,11 +47,11 @@ higher one, the lower level is a bug — fix it, don't work around it.
 | Phase | Scope | Owner | Status |
 |---|---|---|---|
 | **P1** | Foundation, synthetic data, secrets hygiene | **This session** | ✅ built · gates green |
-| **P2** | LangGraph multi-agent core | **This session** | ✅ built · ⚠️ live-LLM run not yet executed |
+| **P2** | LangGraph multi-agent core | **This session** | ✅ built · live runs traced in P4 |
 | **P3** | Context engineering · memory · MCP · agentic RAG | **This session** | ✅ built · gates green |
-| P4 | Arize Phoenix observability | **Teammate** | ⏳ not started |
-| P5 | Cost governance · guardrails · audit · governance pack | **Teammate** | ⏳ not started |
-| P6 | Evaluation · agent tests · runbook · submission | **Teammate** | ⏳ not started |
+| P4 | Arize Phoenix observability | **Teammate** | ✅ merged · `docs/failure-analysis.md` |
+| P5 | Cost governance · guardrails · audit · governance pack | **Teammate** | ✅ merged · `docs/` governance pack |
+| P6 | Evaluation · agent tests · runbook · submission | **Teammate** | ✅ eval + tests + runbook · `reports/eval_report.json` |
 
 ### What is verified, and what is not
 

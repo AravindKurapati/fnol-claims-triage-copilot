@@ -1,6 +1,6 @@
 # Failure-Mode Analysis — FNOL Claims-Triage Copilot
 
-**AC-08 · SPEC-07 §2.4.** Seven real failures, found by running the copilot live against Gemini under
+**AC-08 · SPEC-07 §2.4.** Eight real failures, found by running the copilot live against Gemini under
 Arize Phoenix tracing (`python -m src.main run` / `python -m src.main trace`). None was staged. Every
 `run_id` and `span_id` below resolves in the committed trace export `traces/phoenix_spans.parquet`
 (columns `run_id`, `context.span_id`). Tool-log citations point at lines of `logs/tool_calls.jsonl`.
@@ -16,6 +16,7 @@ the runs that verify each fix:
 | `run-4664e203f3ff` | first full traced batch | 12 | 8 claims degraded: F-03 |
 | `run-61e03b1188df` | batch after F-01…F-03 fixes | 12 | 10/12 route match; F-04, F-05 found |
 | `run-7080f359ae3c` | batch after F-04, F-05 fixes | 12 | F-01…F-05 verified; F-06 and F-07 found in its spans and audit log |
+| `run-28184ad47492` | final Phase 6 batch, after F-06…F-08 fixes | 12 | the evaluated run (`reports/eval_report.json`); F-07 verified |
 
 ---
 
@@ -198,7 +199,37 @@ the runs that verify each fix:
   `tests/test_failure_regressions.py::test_output_pii_guard_scrubs_model_text_that_quotes_the_narrative`
   (a third party's name and phone number in classifier evidence are still redacted). The post-fix
   red-team run (`scripts/redteam.py`) records `OG-02` firing on the classification field, not on the
-  message: `logs/agent_actions.jsonl#L444`.
+  message: `logs/agent_actions.jsonl#L444`. Live, in the final run `run-28184ad47492`, the same
+  ₹820,000 escalation of claim 005 passes the output guard untouched (`allow`, no violations):
+  `logs/agent_actions.jsonl#L552`.
+
+### F-08 — Tracing silently switched off: the "traced" run would have exported nothing
+
+- **Observed:** the first attempt at the final Phase 6 `python -m src.main trace` run. Its console
+  output showed `Phoenix up at http://localhost:6006`, followed by `Phoenix tracing unavailable,
+  continuing untraced: TracerProvider.__init__() got an unexpected keyword argument
+  'project_name'`, and then the batch carried on. **There is no span id to cite, and that is the
+  failure:** the run recorded no spans. We stopped it after the first claim. Its decisions are not in
+  the evaluation.
+- **Symptom:** `trace` exists to produce the trace evidence. Left alone, it would have finished
+  with exit code 0 and re-exported the old spans, and nothing would have flagged the new run as
+  untraced.
+- **Root cause:** two defects together. (1) `arize-phoenix-otel` 0.17 changed `TracerProvider`: it
+  no longer takes `project_name` and passes unknown keyword arguments to the OpenTelemetry SDK, which
+  rejects them. `src/observability/tracing.py::init_tracing` still passed `project_name`. (2)
+  `init_tracing` deliberately degrades to untraced so that tracing can never take a triage run down
+  (NFR-04). That is right for `run` and `batch`, but wrong for `trace`, whose only job is to trace.
+  While checking the fix we also confirmed a latent leak: when given an endpoint, phoenix installs a
+  default span processor that exports **unmasked** spans alongside our masking one.
+- **Fix:** (1) The project name now travels on the OpenTelemetry resource
+  (`ResourceAttributes.PROJECT_NAME`). The masking processor is added with
+  `replace_default_processor=True`, so it is the only exporter (NFR-05, cf. F-06). (2)
+  `src/main.py::cmd_trace` initialises tracing before the batch and exits `1` without running it if
+  tracing is not enabled.
+- **Verified by:** `tests/test_failure_regressions.py::test_tracing_initialises_against_the_installed_phoenix_otel`
+  and `tests/test_failure_regressions.py::test_trace_command_fails_instead_of_exporting_an_untraced_run`.
+  Both reproduced the failure before the fix and pass after it. The final traced run (table above)
+  was recorded with the fix in place.
 
 ---
 
@@ -216,9 +247,11 @@ decision on the threshold (`INVESTIGATE_MIN_INDICATORS` in `.env.example`).
 
 ## Patterns
 
-- **Four of the seven failures were invisible without running the system live.** F-01, F-02 and F-03
-  are integration faults (runtime, provider, quota), and each was diagnosed straight from a span's
-  status message. That is the argument for tracing *before* evaluation.
+- **Four of the eight failures were integration faults, invisible without running the system
+  live.** F-01, F-02 and F-03 (runtime, provider, quota) were each diagnosed straight from a span's
+  status message. That is the argument for tracing *before* evaluation. F-08 (a library upgrade) is
+  the mirror case: the tracing itself failed, and a degrade-gracefully default hid it. Graceful
+  degradation is right for the product path, but wrong for the evidence path.
 - **Three failures (F-04, F-05, F-07) passed the route-level oracle.** Only span- or audit-level
   inspection (the coverage LLM output, the classifier label, the fraud indicator list, the output
   guard's audit records) exposed them. This is why the

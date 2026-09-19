@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-19T02:07:45.675490+00:00",
+  "generated_at": "2026-09-19T13:17:38.300299+00:00",
   "source": "Phoenix project fnol-triage",
   "producer": "scripts/export_traces.py",
   "file": "traces/phoenix_spans.parquet",
-  "total_spans": 1061,
+  "total_spans": 1457,
   "runs": {
     "run-042589191502": {
       "traces": 1,
@@ -17,6 +17,36 @@
       ],
       "tool_spans": [],
       "first_span": "2026-09-19 01:14:19.513346+00:00"
+    },
+    "run-28184ad47492": {
+      "traces": 12,
+      "spans": 396,
+      "span_kinds": {
+        "CHAIN": 308,
+        "TOOL": 47,
+        "LLM": 41
+      },
+      "claims": [
+        "CLM-2026-000001",
+        "CLM-2026-000002",
+        "CLM-2026-000003",
+        "CLM-2026-000004",
+        "CLM-2026-000005",
+        "CLM-2026-000006",
+        "CLM-2026-000007",
+        "CLM-2026-000008",
+        "CLM-2026-000009",
+        "CLM-2026-000010",
+        "CLM-2026-000011",
+        "CLM-2026-000012"
+      ],
+      "tool_spans": [
+        "check_claim_history",
+        "lookup_policy",
+        "retrieve_policy_clauses",
+        "validate_coverage_window"
+      ],
+      "first_span": "2026-09-19 13:13:47.680753+00:00"
     },
     "run-4664e203f3ff": {
       "traces": 12,

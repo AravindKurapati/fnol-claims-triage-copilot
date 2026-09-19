@@ -86,4 +86,33 @@ All seven were found in live traced runs and are documented with run and span id
 
 ## 6. Evaluation summary
 
-<!-- EVAL-SUMMARY: filled from reports/eval_report.json by the Phase 6 run -->
+Source: `reports/eval_report.json` (`scripts/run_eval.py`). It covers all 12 golden cases from the
+final traced run `run-28184ad47492`, whose spans are in `traces/phoenix_spans.parquet`. The judge is
+Gemini `gemini-3.1-flash-lite` via DeepEval, which scored 10 triage cases in 90 judge calls.
+
+| Metric | Value | Gate |
+|---|---:|---|
+| Escalation recall (a missed escalation is the worst failure) | **1.00** | must be 1.0 ✅ |
+| Escalated-and-auto-approved decisions | **0** | must be 0 ✅ |
+| Citation validity (cited clause exists in the corpus) | **1.00** | must be 1.0 ✅ |
+| Routing accuracy (queue, or clarify/refuse outcome) | 0.917 (11/12) | — |
+| Clause / coverage status / claim type / severity / fraud risk accuracy | 1.00 each (10 triage cases) | — |
+| Adversarial handling (injection, cross-claimant, out-of-scope) | 1.00 (3/3) | — |
+| Hallucination rate (DeepEval, lower is better) | 0.041 | — |
+| Faithfulness to retrieved clauses (DeepEval) | 0.978 | — |
+| Answer relevancy (DeepEval) | 0.891 | — |
+
+The one routing miss is claim 007, which is the open product decision O-01 in
+`docs/failure-analysis.md`, not a model error. The router applies SPEC-02's "≥ 3 indicators →
+investigate" rule, and the oracle expects `standard`.
+
+Operational signals for the same run come from `reports/golden_signals.json`:
+
+- **Cost:** 37,082 tokens and **$0.0171** per 12-claim batch (≈ $0.0014 per claim) at the price
+  basis in `src/config.py`.
+- **Latency:** p50 19.9 s and p95 28.4 s per claim end to end. This is dominated by free-tier pacing
+  of the model calls. The tool p50 is 15.5 ms (`reports/optimization_note.md`).
+- **Errors:** zero error spans.
+
+The red-team suite passes 16/16 (`reports/redteam_results.json`).
+
