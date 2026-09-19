@@ -36,6 +36,8 @@ pytest-asyncio>=0.24.0
 # --- security ---
 presidio-analyzer>=2.2.355
 presidio-anonymizer>=2.2.355
+# spaCy model Presidio runs on (small: CPU, pip-installable)
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 llm-guard>=0.3.15
 
 # --- config / runtime ---
@@ -48,6 +50,7 @@ rich>=13.9.0
 pandas>=2.2.0
 pyarrow>=18.0.0
 matplotlib>=3.9.0
+playwright>=1.48.0             # headless screenshot of the Phoenix UI (reports/dashboard.png)
 
 # --- bonus (optional) ---
 fastapi>=0.115.0

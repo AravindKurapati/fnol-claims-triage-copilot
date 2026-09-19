@@ -255,13 +255,22 @@ async def cmd_trace(args: argparse.Namespace) -> int:
     import time
 
     sys.path.insert(0, str(ROOT / "scripts"))
-    from export_traces import ensure_phoenix, export  # type: ignore[import-not-found]
+    from export_traces import (  # type: ignore[import-not-found]
+        ensure_phoenix,
+        export,
+        register_model_prices,
+    )
 
     if not ensure_phoenix():
         console.print(f"[red]Phoenix did not start at {settings.phoenix_collector_endpoint}[/red]"
                       " — see var/phoenix_server.log")
         return EXIT_USAGE
-    console.print(f"[dim]Phoenix up at {settings.phoenix_collector_endpoint}[/dim]")
+    try:
+        created = register_model_prices()
+    except Exception as exc:  # noqa: BLE001 - pricing is cosmetic for the UI, never fatal
+        created, _ = [], console.print(f"[yellow]model pricing not registered: {exc}[/yellow]")
+    console.print(f"[dim]Phoenix up at {settings.phoenix_collector_endpoint}"
+                  f"{'; priced ' + ', '.join(created) if created else ''}[/dim]")
 
     code = await cmd_batch(args)
     run_id = current_run_id()

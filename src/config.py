@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # the `genai-prices` package (pydantic) on 2026-09-18. Override per model via env.
     price_per_1k_input: float = Field(default=0.00030, alias="PRICE_PER_1K_INPUT")
     price_per_1k_output: float = Field(default=0.00250, alias="PRICE_PER_1K_OUTPUT")
+    # gemini-3.1-flash-lite (DeepEval judge) list price ($0.25 / $1.50 per 1M), same source.
+    judge_price_per_1k_input: float = Field(default=0.00025, alias="JUDGE_PRICE_PER_1K_INPUT")
+    judge_price_per_1k_output: float = Field(default=0.00150, alias="JUDGE_PRICE_PER_1K_OUTPUT")
     # Client-side pacing, requests per minute per model. The free tier allows 5 RPM on
     # gemini-3.6-flash and more on the flash-lite models (docs/failure-analysis.md F-03).
     gemini_rpm: int = Field(default=12, alias="GEMINI_RPM")

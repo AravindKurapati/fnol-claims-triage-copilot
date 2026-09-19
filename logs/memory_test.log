@@ -1,18 +1,18 @@
-2026-09-18 21:53:18,099 | INFO  | === cross-session memory persistence test (AC-05) ===
-2026-09-18 21:53:18,100 | INFO  | memory store: D:\Aru\NYU\Virtusa\hackathon-final\var\memory.sqlite
-2026-09-18 21:53:18,100 | INFO  | checkpoint store: D:\Aru\NYU\Virtusa\hackathon-final\var\checkpoints.sqlite
-2026-09-18 21:53:51,742 | INFO  | [session A] thread=t-A wrote memory id=claimant/CLT-***134:fact:81cd79665b34e87c kind=fact
-2026-09-18 21:53:51,743 | INFO  | [session A] text="claimant's vehicle is garaged overnight at a secured society basement in Baner, which the underwriter applied as a security discount"
-2026-09-18 21:53:51,842 | INFO  | [teardown] store module unloaded; only the on-disk sqlite file remains
-2026-09-18 21:53:52,644 | INFO  | [session B] thread=t-B recalled 1 memory record(s)
-2026-09-18 21:53:52,645 | INFO  | [session B] recall kind=fact text="claimant's vehicle is garaged overnight at a secured society basement in Baner, which the underwriter applied as a security discount"
-2026-09-18 21:53:52,645 | INFO  | [assert] cross-session recall of the session-A fact: PASS
-2026-09-18 21:53:52,645 | INFO  | [assert] fact was not derivable from the session-B query alone: PASS
-2026-09-18 21:53:53,667 | INFO  | [masking] stored text='policy POL-AU-****209 held by CLT-***134'
-2026-09-18 21:53:53,667 | INFO  | [assert] no unmasked identifier in the store: PASS
-2026-09-18 21:53:53,799 | INFO  | [short-term] checkpointer=SqliteSaver config={'configurable': {'thread_id': 't-A'}}
-2026-09-18 21:53:53,830 | INFO  | [short-term] checkpoint rows currently on disk: 279
-2026-09-18 21:53:53,830 | INFO  | [assert] short-term checkpoint store is on disk: PASS
-2026-09-18 21:53:54,261 | INFO  | [short-term] async ainvoke through the checkpointer: n=2, rows 279 -> 282
-2026-09-18 21:53:54,262 | INFO  | [assert] checkpointer serves the async graph path: PASS
-2026-09-18 21:53:54,295 | INFO  | === end ===
+2026-09-19 09:01:18,237 | INFO  | === cross-session memory persistence test (AC-05) ===
+2026-09-19 09:01:18,237 | INFO  | memory store: D:\Aru\NYU\Virtusa\hackathon-final\var\memory.sqlite
+2026-09-19 09:01:18,238 | INFO  | checkpoint store: D:\Aru\NYU\Virtusa\hackathon-final\var\checkpoints.sqlite
+2026-09-19 09:01:46,219 | INFO  | [session A] thread=t-A wrote memory id=claimant/CLT-***134:fact:81cd79665b34e87c kind=fact
+2026-09-19 09:01:46,220 | INFO  | [session A] text="claimant's vehicle is garaged overnight at a secured society basement in Baner, which the underwriter applied as a security discount"
+2026-09-19 09:01:46,226 | INFO  | [teardown] store module unloaded; only the on-disk sqlite file remains
+2026-09-19 09:01:46,970 | INFO  | [session B] thread=t-B recalled 1 memory record(s)
+2026-09-19 09:01:46,970 | INFO  | [session B] recall kind=fact text="claimant's vehicle is garaged overnight at a secured society basement in Baner, which the underwriter applied as a security discount"
+2026-09-19 09:01:46,971 | INFO  | [assert] cross-session recall of the session-A fact: PASS
+2026-09-19 09:01:46,971 | INFO  | [assert] fact was not derivable from the session-B query alone: PASS
+2026-09-19 09:01:47,840 | INFO  | [masking] stored text='policy POL-AU-****209 held by CLT-***134'
+2026-09-19 09:01:47,840 | INFO  | [assert] no unmasked identifier in the store: PASS
+2026-09-19 09:01:47,872 | INFO  | [short-term] checkpointer=SqliteSaver config={'configurable': {'thread_id': 't-A'}}
+2026-09-19 09:01:47,876 | INFO  | [short-term] checkpoint rows currently on disk: 437
+2026-09-19 09:01:47,876 | INFO  | [assert] short-term checkpoint store is on disk: PASS
+2026-09-19 09:01:47,941 | INFO  | [short-term] async ainvoke through the checkpointer: n=2, rows 437 -> 440
+2026-09-19 09:01:47,941 | INFO  | [assert] checkpointer serves the async graph path: PASS
+2026-09-19 09:01:47,944 | INFO  | === end ===
