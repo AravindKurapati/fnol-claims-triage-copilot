@@ -50,20 +50,28 @@ def init_tracing(project_name: str | None = None) -> str:
 
     try:
         from openinference.instrumentation.langchain import LangChainInstrumentor
+        from openinference.semconv.resource import ResourceAttributes
         from opentelemetry import trace
+        from opentelemetry.sdk.resources import Resource
         from phoenix.otel import BatchSpanProcessor, HTTPSpanExporter, TracerProvider
 
         endpoint = f"{settings.phoenix_collector_endpoint.rstrip('/')}/v1/traces"
         # Equivalent to phoenix.otel.register(batch=True), except every span passes through
         # MaskingSpanExporter first: the instrumentor serialises whole graph states, identifiers
         # included, into span inputs/outputs (docs/failure-analysis.md F-06, NFR-05).
+        # phoenix-otel >= 0.17 no longer accepts `project_name`; the project travels on the
+        # resource instead (F-08).
         _PROVIDER = TracerProvider(
-            project_name=project_name or settings.phoenix_project_name,
+            resource=Resource.create({
+                ResourceAttributes.PROJECT_NAME: project_name or settings.phoenix_project_name,
+            }),
             endpoint=endpoint, verbose=False,
         )
+        # The endpoint makes phoenix install a default SimpleSpanProcessor that exports UNMASKED
+        # spans; replace it so the masking processor is the only exporter.
         _PROVIDER.add_span_processor(BatchSpanProcessor(
             span_exporter=MaskingSpanExporter(HTTPSpanExporter(endpoint=endpoint))
-        ))
+        ), replace_default_processor=True)
         trace.set_tracer_provider(_PROVIDER)
         LangChainInstrumentor().instrument(tracer_provider=_PROVIDER)
         _TRACER = _PROVIDER.get_tracer("fnol-triage")

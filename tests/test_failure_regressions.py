@@ -167,3 +167,49 @@ def test_unrecognised_claim_type_becomes_unknown_not_free_text():
 def test_claim_type_vocabulary_is_scoped_by_line_of_business():
     assert normalise_claim_type("burglary", "auto") == "unknown"  # not an auto loss type
     assert "fire" in CLAIM_TYPES["auto"] and "fire" in CLAIM_TYPES["property"]
+
+
+# ── F-08 — tracing silently disabled: the traced run exported nothing, and `trace` said OK ──
+
+
+def test_tracing_initialises_against_the_installed_phoenix_otel(monkeypatch):
+    """phoenix-otel's TracerProvider no longer takes `project_name`; init must still enable
+    tracing and tag spans with the project (no collector needed — export is batched)."""
+    from src.observability import tracing
+
+    monkeypatch.setattr(tracing, "_PROVIDER", None)
+    monkeypatch.setattr(tracing.settings, "phoenix_enabled", True)
+    monkeypatch.setattr("opentelemetry.trace.set_tracer_provider", lambda p: None)
+    monkeypatch.setattr(
+        "openinference.instrumentation.langchain.LangChainInstrumentor.instrument",
+        lambda self, **kw: None)
+    tracing.init_tracing(project_name="fnol-regression")
+    try:
+        assert tracing.tracing_enabled(), "init_tracing fell back to untraced"
+        resource = tracing._PROVIDER.resource.attributes
+        assert "fnol-regression" in resource.values()
+    finally:
+        tracing._PROVIDER.shutdown()
+
+
+def test_trace_command_fails_instead_of_exporting_an_untraced_run(monkeypatch):
+    """`trace` exists to produce spans; if tracing is off it must say so and exit non-zero."""
+    import argparse
+    import asyncio
+
+    from src import main as cli
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import export_traces
+
+    monkeypatch.setattr(export_traces, "ensure_phoenix", lambda *a, **k: True)
+    monkeypatch.setattr(export_traces, "register_model_prices", lambda: [])
+    monkeypatch.setattr(cli, "init_tracing", lambda *a, **k: "run-000000000000")
+    monkeypatch.setattr(cli, "tracing_enabled", lambda: False, raising=False)
+
+    async def _no_batch(args):  # the batch must never start untraced
+        raise AssertionError("batch ran without tracing")
+
+    monkeypatch.setattr(cli, "cmd_batch", _no_batch)
+    args = argparse.Namespace(dir=str(settings.sample_claims_dir), all=False)
+    assert asyncio.run(cli.cmd_trace(args)) == cli.EXIT_USAGE
