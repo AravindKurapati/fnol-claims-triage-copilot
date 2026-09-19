@@ -12,8 +12,8 @@ Commands:
     index  [--force]          build the RAG index
     graph                     print the compiled graph topology
     trace                     run the sample inputs under Phoenix + export traces/ (NFR-02)
-    eval                      PHASE 6 — DeepEval + golden signals
-    verify                    PHASE 6 — citation + hygiene verifier
+    eval   [--no-judge]       DeepEval (Gemini judge) + golden signals + dashboard (NFR-02)
+    verify                    citation + hygiene verifier (Rule R2)
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from src.llm import probe  # noqa: E402
 from src.mcp_client import MCPToolset  # noqa: E402
 from src.models import TriageDecision  # noqa: E402
 from src.observability.tracing import flush as flush_traces  # noqa: E402
-from src.observability.tracing import current_run_id, init_tracing  # noqa: E402
+from src.observability.tracing import current_run_id, init_tracing, tracing_enabled  # noqa: E402
 from src.security.masking import mask_record, mask_text  # noqa: E402
 
 console = Console()
@@ -272,6 +272,13 @@ async def cmd_trace(args: argparse.Namespace) -> int:
     console.print(f"[dim]Phoenix up at {settings.phoenix_collector_endpoint}"
                   f"{'; priced ' + ', '.join(created) if created else ''}[/dim]")
 
+    # F-08: `trace` exists to produce spans — refuse to run the batch untraced.
+    init_tracing()
+    if not tracing_enabled():
+        console.print("[red]Phoenix tracing failed to initialise — refusing to run an untraced "
+                      "batch (see the warning above).[/red]")
+        return EXIT_USAGE
+
     code = await cmd_batch(args)
     run_id = current_run_id()
     flush_traces()
@@ -282,14 +289,35 @@ async def cmd_trace(args: argparse.Namespace) -> int:
     return code
 
 
-def cmd_todo(phase: str, spec: str) -> int:
-    console.print(Panel(
-        f"[yellow]{phase} is not implemented yet.[/yellow]\n\n"
-        f"Owner: teammate.  Spec: [bold]{spec}[/bold]\n"
-        f"See AGENTS.md §3 for the handover contract.",
-        expand=False,
-    ))
-    return EXIT_USAGE
+def _script(name: str, *extra: str) -> int:
+    import subprocess
+
+    return subprocess.call([sys.executable, str(ROOT / "scripts" / name), *extra], cwd=str(ROOT))
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    """NFR-02 command 2 (second half): golden set → DeepEval (Gemini judge) → golden signals →
+    dashboard. Scores the decisions of the latest traced run, so run `trace` first (SPEC-11)."""
+    steps = [("golden set", "build_golden_set.py", []),
+             ("evaluation", "run_eval.py", ["--no-judge"] if args.no_judge else []),
+             ("golden signals", "golden_signals.py", []),
+             ("dashboard", "build_dashboard.py", [])]
+    code = EXIT_OK
+    for label, script, extra in steps:
+        console.print(f"[bold]▸ {label}[/bold] [dim](scripts/{script})[/dim]")
+        rc = _script(script, *extra)
+        if rc == 0:
+            continue
+        console.print(f"[red]{label} exited {rc}[/red]")
+        if label != "evaluation":
+            return EXIT_USAGE
+        # a failed eval gate is reported in the exit code, but the signals still regenerate
+        code = EXIT_DEGRADED
+    return code
+
+
+def cmd_verify(_: argparse.Namespace) -> int:
+    return _script("verify_citations.py")
 
 
 # ──────────────────────────────── entrypoint ──────────────────────────────────
@@ -321,8 +349,9 @@ def build_parser() -> argparse.ArgumentParser:
     tr = sub.add_parser("trace", help="run the sample inputs under Phoenix and export the spans")
     tr.add_argument("--dir", default=str(settings.sample_claims_dir))
     tr.add_argument("--all", action="store_true", help="export every run in the Phoenix project")
-    sub.add_parser("eval", help="PHASE 6 — run DeepEval and the golden signals")
-    sub.add_parser("verify", help="PHASE 6 — citation and hygiene verifier")
+    ev = sub.add_parser("eval", help="DeepEval (Gemini judge) + golden signals + dashboard")
+    ev.add_argument("--no-judge", action="store_true", help="deterministic metrics only")
+    sub.add_parser("verify", help="citation and hygiene verifier")
     return p
 
 
@@ -338,9 +367,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.cmd == "graph":
             return cmd_graph(args)
         if args.cmd == "eval":
-            return cmd_todo("Phase 6 (evaluation)", "specs/SPEC-11-evaluation-and-tests.md")
+            return cmd_eval(args)
         if args.cmd == "verify":
-            return cmd_todo("Phase 6 (citation verifier)", "specs/SPEC-12-cli-and-runbook.md")
+            return cmd_verify(args)
 
         if args.cmd in {"run", "batch", "trace"}:
             ok, message = probe()

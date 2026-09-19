@@ -42,7 +42,9 @@ the Art. 14 human-oversight evidence cited in `docs/compliance.md`.
 handler-facing message as a PERSON (`<PERSON>: standard`). That is failure **F-07** in
 `docs/failure-analysis.md`, fixed in `src/guardrails/output_guard.py::scrub_model_text`. The routing
 decision itself was unaffected: it is structured state, not text. The sample is left as recorded,
-because rewriting evidence is not allowed (Rule R1).
+because rewriting evidence is not allowed (Rule R1). In the final evaluated run `run-28184ad47492`,
+the same claim escalates with `auto_approved: false` (`logs/agent_actions.jsonl#L551`), and the
+message now passes the output guard untouched (`logs/agent_actions.jsonl#L552`).
 
 ## 3. Refusal and block paths (red-team)
 

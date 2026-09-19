@@ -428,6 +428,7 @@ class TriageGraph:
             coverage=coverage,
             fraud=fraud,
             routing=routing,
+            retrieved=list(state.get("retrieved") or []),
             next_action=state.get("terminal_message", ""),
             message=verdict.sanitized or state.get("terminal_message", ""),
             degraded=bool(state.get("degraded")),

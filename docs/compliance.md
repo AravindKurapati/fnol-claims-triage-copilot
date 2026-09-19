@@ -47,7 +47,18 @@ would hold with real data.
 | Breach detection | Every guard violation is written to the audit trail with its rule id, so a leak attempt is visible after the fact | `logs/agent_actions.jsonl` (actions `guardrail_blocked`, `guardrail_sanitized`); e.g. `logs/agent_actions.jsonl#L421` |
 | Notice and consent (s.5, s.6) | **Documented approach, not implemented:** in production, the FNOL intake form would carry the notice and capture consent before submission. The copilot runs only after intake, so it never collects data itself. | this document |
 
-## 4. Gaps
+## 4. Provider rule (R4) and the lockfile
+
+Gemini is the only model provider. The verifier (`scripts/verify_citations.py`, check 6) enforces
+this in three places: no other-provider import in `src/`, `mcp_server/`, `scripts/` or `tests/`; no
+other-provider package among the direct dependencies in `requirements.txt`; and no other-provider key
+in `.env.example`. `deepeval` and `llm-guard` do install `openai`, `anthropic`, `langchain-openai`
+and `langchain-anthropic` into the environment as **transitive** dependencies. They are never
+imported or configured. The DeepEval judge is a Gemini wrapper (`scripts/run_eval.py::build_judge`),
+and `src/config.py` refuses to start if another provider's key is present in the environment. A
+`pip freeze` listing those packages is therefore not a breach of Rule R4.
+
+## 5. Gaps
 
 - **Notice/consent** is a documented approach only. The CLI has no intake form.
 - **Erasure** is implemented for long-term memory. Checkpoints are erased by deleting `var/`; there is

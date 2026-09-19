@@ -15,9 +15,12 @@ Business Case **BC-AAIE-HACK-06** · Agentic AI Engineer Pathway capstone.
 
 ## Quick start
 
+Prerequisites: **Python 3.11+** (3.12 used here) and a **Gemini API key** (the free tier works; the
+agents pace themselves to it). No Docker, no external database.
+
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt          # Windows: .venv\Scripts\pip ...
 
 cp .env.example .env          # then put your Gemini API key in GOOGLE_API_KEY
 .venv/bin/python -m src.main index      # build the local RAG index (first run downloads the embedder)
@@ -29,9 +32,26 @@ cp .env.example .env          # then put your Gemini API key in GOOGLE_API_KEY
 # 1 — run the copilot over the committed sample inputs
 .venv/bin/python -m src.main batch --dir data/sample_claims/
 
-# 2 — regenerate the Phoenix traces AND the evaluation      [Phase 4 / Phase 6 — in progress]
+# 2 — regenerate the Phoenix traces AND the evaluation
 .venv/bin/python -m src.main trace && .venv/bin/python -m src.main eval
 ```
+
+**Command 2** does the following:
+
+1. `trace` starts a local Arize Phoenix server on `http://localhost:6006` if one is not already
+   running (log: `var/phoenix_server.log`).
+2. It then runs all 12 sample claims with OpenInference instrumentation and exports the run's spans
+   to `traces/phoenix_spans.parquet` (`scripts/export_traces.py`).
+3. `eval` rebuilds `data/golden_set.json` from the claims' oracles (`scripts/build_golden_set.py`).
+4. It scores that run's decisions with DeepEval, using **Gemini as the judge**, plus deterministic
+   routing, escalation and citation checks (`scripts/run_eval.py` → `reports/eval_report.json`).
+5. It regenerates the golden signals from the spans (`scripts/golden_signals.py` →
+   `reports/golden_signals.json`).
+6. It rebuilds the dashboard (`scripts/build_dashboard.py` → `reports/dashboard.png`,
+   `reports/dashboard_data.csv`).
+
+On the free tier, `trace` takes about 5–10 minutes and `eval` about 10 minutes. Use
+`eval --no-judge` for the deterministic metrics alone, with no model calls.
 
 ### Other commands
 
@@ -41,7 +61,9 @@ cp .env.example .env          # then put your Gemini API key in GOOGLE_API_KEY
 .venv/bin/python -m src.main chat --claimant CLT-882134                      # what memory recalls
 .venv/bin/python -m src.main data --check                                    # verify the corpus
 .venv/bin/python -m src.main graph                                           # graph topology
-.venv/bin/python -m pytest -q                                                # tests
+.venv/bin/python -m src.main verify                                          # citation + hygiene verifier
+.venv/bin/python scripts/redteam.py                                          # guardrail red-team
+.venv/bin/python -m pytest -q                                                # agent tests
 ```
 
 Exit codes: `0` ok · `1` usage/config error · `2` degraded run (decision produced, escalated) ·
@@ -78,20 +100,29 @@ logged.
 
 ## Where the evidence lands
 
-| Artifact | Path | Phase |
-|---|---|---|
-| MCP tool-call transcript | `logs/mcp_transcript.jsonl` | 3 ✅ |
-| Memory persistence log | `logs/memory_test.log` | 3 ✅ |
-| Quarantine threat log | `logs/quarantine_events.jsonl` | 3 ✅ |
-| Audit trail | `logs/agent_actions.jsonl` | 3 ✅ (Phase 5 extends) |
-| Tool-invocation log | `logs/tool_calls.jsonl` | 4 |
-| Phoenix trace export | `traces/phoenix_spans.parquet` | 4 |
-| Failure-mode analysis | `docs/failure-analysis.md` | 4 |
-| Golden signals + dashboard | `reports/golden_signals.json`, `reports/dashboard.{png,csv}` | 5 |
-| Governance pack | `docs/risk-register.md`, `model-card.md`, `compliance.md`, `output-risk.md` | 5 |
-| Evaluation report | `reports/eval_report.json` | 6 |
+Every artifact below is written by committed code (the producer column). `scripts/evidence_manifest.py`
+declares each pairing, and `python -m src.main verify` checks it.
 
-Per-run decisions are written to `runs/<run_id>_<claim_id>.json` (gitignored — regenerable).
+| Artifact | Path | Producer |
+|---|---|---|
+| Phoenix trace export | `traces/phoenix_spans.parquet`, `traces/trace_manifest.json` | `scripts/export_traces.py` |
+| Tool-invocation log (AC-07) | `logs/tool_calls.jsonl` | `src/observability/tool_logger.py` |
+| Audit trail (AC-10) | `logs/agent_actions.jsonl` | `src/observability/audit.py` |
+| MCP transcript | `logs/mcp_transcript.jsonl` | `src/mcp_client.py` |
+| Memory persistence log (AC-05) | `logs/memory_test.log` | `tests/test_memory_persistence.py` |
+| Quarantine threat log | `logs/quarantine_events.jsonl` | `src/context/quarantine.py` |
+| Golden signals (AC-09) | `reports/golden_signals.json` | `scripts/golden_signals.py` |
+| Dashboard (AC-09) | `reports/dashboard.png`, `reports/dashboard_data.csv`, `reports/dashboard_chart.png` | `scripts/build_dashboard.py` |
+| Evaluation report (AC-12) | `reports/eval_report.json` | `scripts/run_eval.py` |
+| Golden set | `data/golden_set.json` | `scripts/build_golden_set.py` |
+| Red-team results | `reports/redteam_results.json` | `scripts/redteam.py` |
+| PII before/after sample | `reports/pii_redaction_sample.json` | `scripts/redteam.py` |
+| Optimisation note | `reports/optimization_note.md` | measured from `reports/golden_signals_baseline.json` vs `reports/golden_signals.json` |
+| Failure analysis (AC-08) | `docs/failure-analysis.md` | written from real Phoenix runs; ids resolved by the verifier |
+| Governance pack (AC-11) | `docs/risk-register.md`, `docs/model-card.md`, `docs/compliance.md`, `docs/output-risk.md` | citation-gated by the verifier |
+
+Per-run decisions are written to `runs/<run_id>_<claim_id>.json` (gitignored, regenerable). The
+evaluation scores these files, which are the same decisions whose spans are in the trace export.
 
 ---
 
@@ -106,8 +137,7 @@ indicators with four narrative ones the model may only *add*. Routing and escala
 function: an escalated claim can never be auto-approved, enforced in the router, in the
 `RoutingDecision` validator, and again at the output guard. Full detail in [`design.md`](design.md).
 
-Prerequisites: Python 3.11+ (3.12 used here), a Gemini API key. No Docker, no external database —
-SQLite files and a local Chroma directory only.
+Storage is SQLite files and a local Chroma directory only, all under the gitignored `var/`.
 
 ---
 
@@ -116,3 +146,18 @@ SQLite files and a local Chroma directory only.
 Two are configured in [`.mcp.json`](.mcp.json): the project's own `fnol-policy` server
 (`mcp_server/server.py` — 3 tools + 1 resource, the graded artifact) and `playwright` for
 development only. See [`docs/mcp-servers.md`](docs/mcp-servers.md).
+
+---
+
+## Troubleshooting
+
+- **Phoenix port.** `trace` expects Phoenix on `localhost:6006` (`PHOENIX_COLLECTOR_ENDPOINT`). If
+  another process holds the port, stop it or change the endpoint in `.env`. Server output goes to
+  `var/phoenix_server.log`. Set `PHOENIX_ENABLED=false` to run without tracing.
+- **First run is slow.** Sentence-Transformers downloads `all-MiniLM-L6-v2` (~90 MB) the first time
+  the index or memory is built, and Presidio loads a spaCy model.
+- **429 / RESOURCE_EXHAUSTED.** Free-tier quotas are per model and per minute. Calls are paced to
+  `GEMINI_RPM` (default 12) and honour the provider's retry delay. Lower `GEMINI_RPM` if 429s persist.
+- **`404 NOT_FOUND` on the model.** Model ids get retired. Set `GEMINI_MODEL` / `GEMINI_JUDGE_MODEL`
+  in `.env` to current ids. The startup probe makes a real call, so this fails fast.
+- **Windows console.** Set `PYTHONIOENCODING=utf-8` so the rich tables render (`§`, `→`, `₹`).

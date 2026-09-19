@@ -215,6 +215,8 @@ class TriageDecision(BaseModel):
     coverage: CoverageAssessment | None = None
     fraud: FraudAssessment | None = None
     routing: RoutingDecision | None = None
+    # the clauses the RAG tool returned in this run — what the eval judges faithfulness against
+    retrieved: list[RetrievedClause] = Field(default_factory=list)
     next_action: str = ""
     message: str = ""
     degraded: bool = False
