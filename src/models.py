@@ -12,7 +12,7 @@ enforced rather than merely prompted:
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -188,11 +188,21 @@ class RoutingDecision(BaseModel):
 
 
 class GuardVerdict(BaseModel):
-    """SPEC-09 §2.1 — filled by Phase 5; pass-through `allow` until then."""
+    """SPEC-09 §2.1 — a guardrail's decision. Each violation is `{rule_id, severity, detail}`."""
 
     action: Literal["allow", "sanitize", "block"] = "allow"
     violations: list[dict] = Field(default_factory=list)
     sanitized: str | None = None
+    # Where a block sends the request without changing the graph topology:
+    # "escalate" (refuse / human) or an intent kind the supervisor routes to `clarify`.
+    route_hint: str | None = None
+    # Sanitized replacements for structured fields (e.g. OG-02 scrubbing model text that quotes
+    # the claimant's narrative), applied by the output_guard node to the outgoing decision.
+    field_updates: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def rule_ids(self) -> list[str]:
+        return [v.get("rule_id", "?") for v in self.violations]
 
 
 class TriageDecision(BaseModel):

@@ -62,6 +62,7 @@ class MCPToolset:
 
     def __init__(self) -> None:
         self._client: Any = None
+        self._session_cm: Any = None
         self.tools: list[Any] = []
         self.available = False
         self.error: str | None = None
@@ -76,9 +77,15 @@ class MCPToolset:
     async def connect(self) -> "MCPToolset":
         try:
             from langchain_mcp_adapters.client import MultiServerMCPClient
+            from langchain_mcp_adapters.tools import load_mcp_tools
 
             self._client = MultiServerMCPClient(server_params())
-            raw = await self._client.get_tools()
+            # One stdio session for the life of the run. `client.get_tools()` without a session
+            # spawns a fresh server subprocess per tool call (~1.7 s each in the Phoenix spans);
+            # see reports/optimization_note.md.
+            self._session_cm = self._client.session("fnol-policy")
+            session = await self._session_cm.__aenter__()
+            raw = await load_mcp_tools(session, server_name="fnol-policy")
             self.tools = [self._wrap(t) for t in raw]
             self.available = True
             _transcribe(direction="event", kind="session", name="connected",
@@ -91,6 +98,12 @@ class MCPToolset:
         return self
 
     async def close(self) -> None:
+        if self._session_cm is not None:
+            try:
+                await self._session_cm.__aexit__(None, None, None)
+            except Exception as exc:  # noqa: BLE001 - shutting down; never mask the run's result
+                log.debug("MCP session close: %s", exc)
+            self._session_cm = None
         self._client = None
 
     def _wrap(self, tool: Any) -> Any:

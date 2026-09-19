@@ -34,7 +34,7 @@ from src.guardrails.output_guard import screen_output
 from src.mcp_client import MCPToolset
 from src.memory.long_term import MemoryRecord, recall, remember
 from src.memory.short_term import build_checkpointer
-from src.models import ClaimRecord, TriageDecision
+from src.models import ClaimRecord, Intent, RoutingDecision, TriageDecision
 from src.observability.audit import emit_audit
 from src.observability.tool_logger import current_agent
 from src.observability.tracing import claim_span
@@ -76,19 +76,48 @@ class TriageGraph:
     # ───────────────────────────────── nodes ─────────────────────────────────
 
     async def input_guard(self, state: TriageState) -> dict[str, Any]:
-        """First node. PHASE 5 fills the validators — the topology never changes (SPEC-09 §2.1)."""
+        """First node — rules IG-01…IG-05 (src/guardrails/input_guard.py, SPEC-09 §2.1).
+
+        A block never changes the topology: a refusal (IG-02) or a malformed payload (IG-05) goes
+        to `escalate`; an out-of-scope servicing request (IG-03) pre-sets the intent, so the
+        supervisor sends it to `clarify` without an LLM call. Sanitized narrative text (IG-04)
+        replaces the raw description before `ingest` quarantines it.
+        """
         current_agent.set("input_guard")
+        raw = dict(state.get("raw_input") or {})
+        claim_id = str(raw.get("claim_id") or "unknown")
         verdict = await screen_input(state)
         emit_audit(
-            actor="input_guard", action="input_screened", decision=verdict,
-            run_id=state.get("run_id"), rationale=f"{len(verdict.violations)} violation(s)",
+            actor="input_guard", action="input_screened", decision=verdict, claim_id=claim_id,
+            run_id=state.get("run_id"),
+            rationale=f"{verdict.action}: {', '.join(verdict.rule_ids) or 'no violations'}",
         )
-        out: dict[str, Any] = {"guard_input": verdict, "step_count": state.get("step_count", 0) + 1}
-        if verdict.action == "block":
-            out["terminal_message"] = (
-                "This request cannot be processed. It has been referred to a human handler."
+        for v in verdict.violations:
+            emit_audit(
+                actor="input_guard",
+                action="guardrail_blocked" if verdict.action == "block" else "guardrail_sanitized",
+                tool=v["rule_id"], decision=v, rationale=v["detail"], claim_id=claim_id,
+                run_id=state.get("run_id"),
             )
-            out["next_step"] = "escalate"
+
+        out: dict[str, Any] = {"guard_input": verdict, "step_count": state.get("step_count", 0) + 1}
+        if verdict.action == "sanitize" and verdict.sanitized is not None:
+            out["raw_input"] = {**raw, "description": verdict.sanitized}
+        if verdict.action != "block":
+            return out
+
+        hint = verdict.route_hint or "escalate"
+        if hint in {"ambiguous", "out_of_scope"}:  # IG-03 → clarify via the supervisor
+            out["intent"] = Intent(kind=hint, confidence=1.0,
+                                   rationale=f"input guard: {verdict.violations[0]['detail']}")
+            return out
+        if hint == "other_claimant_data":  # IG-02 → refusal, disclose nothing (AC-06)
+            out["intent"] = Intent(kind="other_claimant_data", confidence=1.0,
+                                   rationale="input guard IG-02: request names another claimant")
+        out["terminal_message"] = (
+            "This request cannot be processed. It has been referred to a human handler."
+        )
+        out["next_step"] = "escalate"
         return out
 
     async def ingest(self, state: TriageState) -> dict[str, Any]:
@@ -345,25 +374,60 @@ class TriageGraph:
                 "step_count": state.get("step_count", 0) + 1}
 
     async def output_guard(self, state: TriageState) -> dict[str, Any]:
-        """Last node. PHASE 5 fills the validators, including OG-04 (SPEC-09 §2.1)."""
+        """Last node — rules OG-01…OG-05 (src/guardrails/output_guard.py, SPEC-09 §2.1).
+
+        A block is applied, not just logged: OG-03 (unverifiable clause) downgrades coverage to
+        `ambiguous`, and OG-03/OG-04/OG-05 all force `escalation_required=True,
+        auto_approved=False` on the decision that leaves the graph.
+        """
         current_agent.set("output_guard")
+        claim = state.get("claim")
+        claim_id = claim.claim_id if claim else str((state.get("raw_input") or {}).get(
+            "claim_id") or "unknown")
         verdict = await screen_output(state)
         emit_audit(
             actor="output_guard", action="output_screened", decision=verdict,
-            run_id=state.get("run_id"),
-            claim_id=state["claim"].claim_id if state.get("claim") else None,
-            rationale=f"{len(verdict.violations)} violation(s)",
+            run_id=state.get("run_id"), claim_id=claim_id,
+            rationale=f"{verdict.action}: {', '.join(verdict.rule_ids) or 'no violations'}",
         )
+        for v in verdict.violations:
+            emit_audit(
+                actor="output_guard",
+                action="guardrail_blocked" if verdict.action == "block" else "guardrail_sanitized",
+                tool=v["rule_id"], decision=v, rationale=v["detail"], claim_id=claim_id,
+                run_id=state.get("run_id"),
+            )
 
-        claim = state.get("claim")
+        coverage, routing = state.get("coverage"), state.get("routing")
+        classification, fraud = state.get("classification"), state.get("fraud")
+        # OG-02: PII scrubbed out of model-written text travels as field replacements.
+        coverage = verdict.field_updates.get("coverage", coverage)
+        classification = verdict.field_updates.get("classification", classification)
+        fraud = verdict.field_updates.get("fraud", fraud)
+        if verdict.action == "block":
+            if "OG-03" in verdict.rule_ids and coverage is not None:
+                coverage = coverage.model_copy(update={
+                    "status": "ambiguous",
+                    "rationale": f"[OG-03: citation not verifiable] {coverage.rationale}"})
+            if routing is not None:
+                reason = f"output guard {', '.join(verdict.rule_ids)}"
+                routing = RoutingDecision(
+                    queue=routing.queue if routing.queue != "fast_track" else "standard",
+                    rationale=routing.rationale, escalation_required=True, auto_approved=False,
+                    escalation_reason="; ".join(filter(None, [routing.escalation_reason, reason])),
+                )
+            emit_audit(actor="output_guard", action="escalated", run_id=state.get("run_id"),
+                       claim_id=claim_id, decision={"auto_approved": False},
+                       rationale=f"blocked by {', '.join(verdict.rule_ids)}")
+
         decision = TriageDecision(
-            claim_id=claim.claim_id if claim else "unknown",
+            claim_id=claim_id,
             run_id=state.get("run_id", "unset"),
             intent=state.get("intent"),
-            classification=state.get("classification"),
-            coverage=state.get("coverage"),
-            fraud=state.get("fraud"),
-            routing=state.get("routing"),
+            classification=classification,
+            coverage=coverage,
+            fraud=fraud,
+            routing=routing,
             next_action=state.get("terminal_message", ""),
             message=verdict.sanitized or state.get("terminal_message", ""),
             degraded=bool(state.get("degraded")),

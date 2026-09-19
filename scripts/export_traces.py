@@ -75,6 +75,49 @@ def ensure_phoenix(wait_s: float = 90.0) -> bool:
     return False
 
 
+def _gql(query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+    req = urllib.request.Request(
+        settings.phoenix_collector_endpoint.rstrip("/") + "/graphql",
+        data=json.dumps({"query": query, "variables": variables or {}}).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:  # noqa: S310 - localhost only
+        return json.loads(resp.read())
+
+
+def register_model_prices() -> list[str]:
+    """Teach Phoenix the price of the Gemini models we run, so its UI cost column is populated.
+
+    Phoenix prices a span when it is ingested, from its built-in model table — which has no entry
+    for the current flash-lite models, so the UI showed "Total Cost $0". The prices are the same
+    auditable basis `scripts/golden_signals.py` uses (`src/config.py`), keeping the screenshot and
+    the report consistent. Idempotent: a model already registered is left alone.
+    """
+    edges = _gql("{ generativeModels(first: 1000) { edges { node { name } } } }")["data"][
+        "generativeModels"]["edges"]
+    existing = {e["node"]["name"] for e in edges}
+    created = []
+    prices = {settings.gemini_model: (settings.price_per_1k_input * 1000,
+                                      settings.price_per_1k_output * 1000)}
+    if settings.gemini_judge_model not in prices:
+        prices[settings.gemini_judge_model] = (settings.judge_price_per_1k_input * 1000,
+                                               settings.judge_price_per_1k_output * 1000)
+    for model, (inp, out) in prices.items():
+        if model in existing:
+            continue
+        res = _gql(
+            "mutation($i: CreateModelMutationInput!) { createModel(input: $i) { model { name } } }",
+            {"i": {"name": model, "provider": "google", "namePattern": f"(?i)^{model}$",
+                   "costs": [
+                       {"tokenType": "input", "kind": "PROMPT", "costPerMillionTokens": inp},
+                       {"tokenType": "output", "kind": "COMPLETION", "costPerMillionTokens": out},
+                   ]}},
+        )
+        if not res.get("errors"):
+            created.append(model)
+    return created
+
+
 # ─────────────────────────────── export ──────────────────────────────────────
 
 

@@ -119,6 +119,36 @@ def test_trace_export_never_masks_the_span_ids_it_is_cited_by():
     assert out["context.trace_id"].iloc[0] == "5cff3ce1d7b4a83132bcf464340259d6"
 
 
+# ── F-07 — OG-02 redacted the word "Queue" as a PERSON in every escalation instruction ──
+
+
+async def test_output_pii_guard_leaves_system_templates_intact():
+    from src.guardrails.output_guard import screen_output
+    from src.models import RoutingDecision
+
+    msg = ("Escalate to a human claims handler — high-value claim (820,000 >= 500,000). "
+           "Queue: standard. This is a recommendation, not an approval.")
+    routing = RoutingDecision(queue="standard", rationale="x", escalation_required=True,
+                              escalation_reason="high-value claim")
+    verdict = await screen_output({"terminal_message": msg, "routing": routing, "retrieved": []})
+    assert "OG-02" not in verdict.rule_ids
+    assert (verdict.sanitized or msg) == msg
+
+
+async def test_output_pii_guard_scrubs_model_text_that_quotes_the_narrative():
+    """The real leak surface: model-written fields quoting the claimant's narrative."""
+    from src.guardrails.output_guard import screen_output
+
+    cls = Classification(claim_type="collision", severity="minor", confidence=0.9,
+                         evidence=["my neighbour Rahul Mehta reversed into the car",
+                                   "call me on 98765 43210"])
+    verdict = await screen_output({"terminal_message": "ok", "classification": cls,
+                                   "retrieved": []})
+    assert "OG-02" in verdict.rule_ids
+    scrubbed = " ".join(verdict.field_updates["classification"].evidence)
+    assert "Rahul Mehta" not in scrubbed and "98765 43210" not in scrubbed
+
+
 # ── F-05 — classifier echoed the prompt's "auto: collision" layout as the label ──
 
 

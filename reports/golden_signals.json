@@ -1,0 +1,183 @@
+{
+  "generated_at": "2026-09-19T02:14:16.146744+00:00",
+  "producer": "scripts/golden_signals.py",
+  "source": "traces/phoenix_spans.parquet (Phoenix get_spans_dataframe export)",
+  "run_ids": [
+    "run-7080f359ae3c"
+  ],
+  "span_count": 393,
+  "latency_ms": {
+    "end_to_end": {
+      "p50": 19902.4,
+      "p95": 42871.5,
+      "max": 68570.3,
+      "n": 12
+    },
+    "by_span_type": {
+      "thinking": {
+        "p50": 759.6,
+        "p95": 1062.7,
+        "max": 1088.2,
+        "n": 40
+      },
+      "acting": {
+        "p50": 27.2,
+        "p95": 5169.9,
+        "max": 26721.5,
+        "n": 128
+      },
+      "tool": {
+        "p50": 1629.2,
+        "p95": 2808.1,
+        "max": 5041.2,
+        "n": 47
+      }
+    },
+    "by_node": {
+      "input_guard": {
+        "p50": 23.9,
+        "p95": 12055.9,
+        "max": 26721.5,
+        "n": 12
+      },
+      "ingest": {
+        "p50": 170.0,
+        "p95": 12683.2,
+        "max": 25148.3,
+        "n": 11
+      },
+      "supervisor": {
+        "p50": 4.1,
+        "p95": 4855.4,
+        "max": 5091.4,
+        "n": 41
+      },
+      "classifier": {
+        "p50": 4946.1,
+        "p95": 5168.2,
+        "max": 5209.9,
+        "n": 10
+      },
+      "coverage": {
+        "p50": 5099.3,
+        "p95": 5799.9,
+        "max": 6100.0,
+        "n": 10
+      },
+      "fraud": {
+        "p50": 4672.3,
+        "p95": 4868.6,
+        "max": 4940.3,
+        "n": 10
+      },
+      "router": {
+        "p50": 4.8,
+        "p95": 8.0,
+        "max": 8.5,
+        "n": 10
+      },
+      "clarify": {
+        "p50": 1.0,
+        "p95": 1.0,
+        "max": 1.0,
+        "n": 1
+      },
+      "escalate": {
+        "p50": 2.0,
+        "p95": 5.6,
+        "max": 6.0,
+        "n": 3
+      },
+      "finalize": {
+        "p50": 77.9,
+        "p95": 103.7,
+        "max": 109.6,
+        "n": 8
+      },
+      "output_guard": {
+        "p50": 14.2,
+        "p95": 437.1,
+        "max": 934.2,
+        "n": 12
+      }
+    },
+    "by_tool": {
+      "check_claim_history": {
+        "p50": 1730.3,
+        "p95": 2553.4,
+        "max": 3153.1,
+        "n": 10
+      },
+      "lookup_policy": {
+        "p50": 1782.4,
+        "p95": 2742.3,
+        "max": 2861.0,
+        "n": 7
+      },
+      "retrieve_policy_clauses": {
+        "p50": 35.9,
+        "p95": 180.4,
+        "max": 1395.6,
+        "n": 20
+      },
+      "validate_coverage_window": {
+        "p50": 1763.3,
+        "p95": 3980.8,
+        "max": 5041.2,
+        "n": 10
+      }
+    }
+  },
+  "tokens": {
+    "input": 32869,
+    "output": 2577,
+    "total": 35446,
+    "by_node": {
+      "classifier": {
+        "input": 7053,
+        "output": 621,
+        "llm_calls": 10
+      },
+      "coverage": {
+        "input": 13076,
+        "output": 1129,
+        "llm_calls": 10
+      },
+      "fraud": {
+        "input": 6057,
+        "output": 152,
+        "llm_calls": 10
+      },
+      "supervisor": {
+        "input": 6683,
+        "output": 675,
+        "llm_calls": 10
+      }
+    },
+    "llm_calls": 40
+  },
+  "cost": {
+    "currency": "USD",
+    "model": "gemini-3.5-flash-lite",
+    "price_per_1k_input": 0.0003,
+    "price_per_1k_output": 0.0025,
+    "price_source": "src/config.py (PRICE_PER_1K_INPUT / PRICE_PER_1K_OUTPUT)",
+    "estimated_total": 0.016303,
+    "per_claim_avg": 0.001359
+  },
+  "quality": {
+    "accuracy": null,
+    "hallucination_rate": null,
+    "source": null,
+    "note": "run `python -m src.main eval` first, then re-run this script"
+  },
+  "traffic": {
+    "claims_processed": 12,
+    "tool_calls": 47,
+    "llm_calls": 40
+  },
+  "errors": {
+    "error_spans": 0,
+    "error_rate": 0.0
+  }
+}
