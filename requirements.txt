@@ -4,6 +4,7 @@
 # --- agent framework ---
 langgraph>=0.2.60
 langgraph-checkpoint-sqlite>=2.0.0
+aiosqlite>=0.20.0              # AsyncSqliteSaver — the graph runs via ainvoke (F-01)
 langchain-core>=0.3.25
 
 # --- LLM provider: Google Gemini ONLY ---

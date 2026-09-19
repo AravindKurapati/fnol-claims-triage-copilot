@@ -27,13 +27,18 @@ class Settings(BaseSettings):
 
     # --- model provider (Gemini only — Rule R4) ---
     google_api_key: str = Field(default="", alias="GOOGLE_API_KEY")
-    gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
-    gemini_judge_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_JUDGE_MODEL")
+    gemini_model: str = Field(default="gemini-3.5-flash-lite", alias="GEMINI_MODEL")
+    gemini_judge_model: str = Field(default="gemini-3.1-flash-lite", alias="GEMINI_JUDGE_MODEL")
     gemini_temperature: float = Field(default=0.1, alias="GEMINI_TEMPERATURE")
 
     # --- cost basis for the golden-signals report (AC-09) ---
-    price_per_1k_input: float = Field(default=0.000075, alias="PRICE_PER_1K_INPUT")
-    price_per_1k_output: float = Field(default=0.00030, alias="PRICE_PER_1K_OUTPUT")
+    # gemini-3.5-flash-lite list price, USD per 1K tokens ($0.30 / $2.50 per 1M), as published in
+    # the `genai-prices` package (pydantic) on 2026-09-18. Override per model via env.
+    price_per_1k_input: float = Field(default=0.00030, alias="PRICE_PER_1K_INPUT")
+    price_per_1k_output: float = Field(default=0.00250, alias="PRICE_PER_1K_OUTPUT")
+    # Client-side pacing, requests per minute per model. The free tier allows 5 RPM on
+    # gemini-3.6-flash and more on the flash-lite models (docs/failure-analysis.md F-03).
+    gemini_rpm: int = Field(default=12, alias="GEMINI_RPM")
 
     # --- triage thresholds (SPEC-02 §2.5) ---
     fast_track_max_amount: float = Field(default=50_000, alias="FAST_TRACK_MAX_AMOUNT")

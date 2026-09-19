@@ -13,12 +13,28 @@ from src.config import settings
 
 
 def build_checkpointer() -> Any:
-    """A SqliteSaver over the committed-path SQLite file. No external DB service (Rule R4)."""
-    from langgraph.checkpoint.sqlite import SqliteSaver
+    """An AsyncSqliteSaver over the SQLite file. No external DB service (Rule R4).
+
+    Async because the graph runs via `ainvoke` (NFR-04). The sync `SqliteSaver` raises
+    NotImplementedError on every async checkpoint call, which degraded every live run —
+    docs/failure-analysis.md F-01. The aiosqlite connection is opened lazily on first use, inside
+    the running event loop. Outside a loop (compile-only callers such as `src.main graph`) the
+    sync saver over the same file is returned — nothing invokes the graph there.
+    """
+    import asyncio
 
     settings.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(settings.checkpoint_path), check_same_thread=False)
-    return SqliteSaver(conn)
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        from langgraph.checkpoint.sqlite import SqliteSaver
+
+        return SqliteSaver(sqlite3.connect(str(settings.checkpoint_path), check_same_thread=False))
+
+    import aiosqlite
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+    return AsyncSqliteSaver(aiosqlite.connect(str(settings.checkpoint_path)))
 
 
 def thread_config(thread_id: str, **extra: Any) -> dict[str, Any]:

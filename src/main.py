@@ -11,7 +11,7 @@ Commands:
     data   [--check]          regenerate / verify the synthetic corpus
     index  [--force]          build the RAG index
     graph                     print the compiled graph topology
-    trace                     PHASE 4 — regenerate + export Phoenix traces
+    trace                     run the sample inputs under Phoenix + export traces/ (NFR-02)
     eval                      PHASE 6 — DeepEval + golden signals
     verify                    PHASE 6 — citation + hygiene verifier
 """
@@ -38,7 +38,8 @@ from src.graph import build_graph, run_claim  # noqa: E402
 from src.llm import probe  # noqa: E402
 from src.mcp_client import MCPToolset  # noqa: E402
 from src.models import TriageDecision  # noqa: E402
-from src.observability.tracing import init_tracing  # noqa: E402
+from src.observability.tracing import flush as flush_traces  # noqa: E402
+from src.observability.tracing import current_run_id, init_tracing  # noqa: E402
 from src.security.masking import mask_record, mask_text  # noqa: E402
 
 console = Console()
@@ -120,13 +121,19 @@ async def cmd_run(args: argparse.Namespace) -> int:
         return EXIT_USAGE
 
     raw = json.loads(claim_path.read_text(encoding="utf-8"))
-    thread_id = args.thread_id or f"t-{raw.get('claim_id', 'unknown')}"
+    # One checkpoint thread per run unless the caller continues one explicitly: re-invoking a
+    # finished thread merges the new input into its old channels, and the additive reducers
+    # (`errors`, `retrieved`) would carry a previous run's errors into this decision.
+    thread_id = args.thread_id or f"t-{raw.get('claim_id', 'unknown')}-{run_id[4:]}"
 
     async with MCPToolset() as mcp:
         if not mcp.available:
             console.print(f"[yellow]MCP unavailable ({mcp.error}) — running degraded[/yellow]")
         graph = await build_graph(mcp)
-        decision = await run_claim(graph, raw, run_id=run_id, thread_id=thread_id)
+        try:
+            decision = await run_claim(graph, raw, run_id=run_id, thread_id=thread_id)
+        finally:
+            await graph.aclose()
 
     path = save_run(decision)
     if args.json:
@@ -150,15 +157,18 @@ async def cmd_batch(args: argparse.Namespace) -> int:
         if not mcp.available:
             console.print(f"[yellow]MCP unavailable ({mcp.error}) — running degraded[/yellow]")
         graph = await build_graph(mcp)
-        for f in files:
-            raw = json.loads(f.read_text(encoding="utf-8"))
-            fixture = raw.get("_fixture", {})
-            console.print(f"[dim]▸ {f.name}  ({fixture.get('scenario','—')})[/dim]")
-            decision = await run_claim(
-                graph, raw, run_id=run_id, thread_id=f"t-{raw.get('claim_id')}"
-            )
-            save_run(decision)
-            results.append((f.name, decision, fixture))
+        try:
+            for f in files:
+                raw = json.loads(f.read_text(encoding="utf-8"))
+                fixture = raw.get("_fixture", {})
+                console.print(f"[dim]▸ {f.name}  ({fixture.get('scenario','—')})[/dim]")
+                decision = await run_claim(
+                    graph, raw, run_id=run_id, thread_id=f"t-{raw.get('claim_id')}-{run_id[4:]}"
+                )
+                save_run(decision)
+                results.append((f.name, decision, fixture))
+        finally:
+            await graph.aclose()
 
     _summary_table(results)
     return EXIT_DEGRADED if any(d.degraded for _, d, _ in results) else EXIT_OK
@@ -239,6 +249,30 @@ def cmd_graph(_: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+async def cmd_trace(args: argparse.Namespace) -> int:
+    """NFR-02 command 2 (first half): run the committed sample inputs under Phoenix tracing, then
+    export the spans to `traces/phoenix_spans.parquet` (SPEC-07 §2.2)."""
+    import time
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from export_traces import ensure_phoenix, export  # type: ignore[import-not-found]
+
+    if not ensure_phoenix():
+        console.print(f"[red]Phoenix did not start at {settings.phoenix_collector_endpoint}[/red]"
+                      " — see var/phoenix_server.log")
+        return EXIT_USAGE
+    console.print(f"[dim]Phoenix up at {settings.phoenix_collector_endpoint}[/dim]")
+
+    code = await cmd_batch(args)
+    run_id = current_run_id()
+    flush_traces()
+    time.sleep(3)  # let the collector commit the last batch before reading it back
+    out = export(None if args.all else run_id)
+    console.print(f"exported [bold]{out['spans']}[/bold] spans → traces/phoenix_spans.parquet "
+                  f"(run {run_id}; runs in file: {len(out['runs'])})")
+    return code
+
+
 def cmd_todo(phase: str, spec: str) -> int:
     console.print(Panel(
         f"[yellow]{phase} is not implemented yet.[/yellow]\n\n"
@@ -275,7 +309,9 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--force", action="store_true")
 
     sub.add_parser("graph", help="print the compiled graph topology")
-    sub.add_parser("trace", help="PHASE 4 — regenerate and export Phoenix traces")
+    tr = sub.add_parser("trace", help="run the sample inputs under Phoenix and export the spans")
+    tr.add_argument("--dir", default=str(settings.sample_claims_dir))
+    tr.add_argument("--all", action="store_true", help="export every run in the Phoenix project")
     sub.add_parser("eval", help="PHASE 6 — run DeepEval and the golden signals")
     sub.add_parser("verify", help="PHASE 6 — citation and hygiene verifier")
     return p
@@ -292,22 +328,23 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_index(args)
         if args.cmd == "graph":
             return cmd_graph(args)
-        if args.cmd == "trace":
-            return cmd_todo("Phase 4 (Phoenix trace export)", "specs/SPEC-07-observability.md")
         if args.cmd == "eval":
             return cmd_todo("Phase 6 (evaluation)", "specs/SPEC-11-evaluation-and-tests.md")
         if args.cmd == "verify":
             return cmd_todo("Phase 6 (citation verifier)", "specs/SPEC-12-cli-and-runbook.md")
 
-        if args.cmd in {"run", "batch"}:
+        if args.cmd in {"run", "batch", "trace"}:
             ok, message = probe()
             if not ok:
                 console.print(f"[red]{message}[/red]")
                 return EXIT_USAGE
             console.print(f"[dim]{message}[/dim]")
 
-        handlers = {"run": cmd_run, "batch": cmd_batch, "chat": cmd_chat}
-        return asyncio.run(handlers[args.cmd](args))
+        handlers = {"run": cmd_run, "batch": cmd_batch, "chat": cmd_chat, "trace": cmd_trace}
+        try:
+            return asyncio.run(handlers[args.cmd](args))
+        finally:
+            flush_traces()
     except ConfigError as exc:
         console.print(f"[red]{exc}[/red]")
         return EXIT_USAGE

@@ -92,6 +92,10 @@ def decide_next(state: dict) -> str:
 
     if intent.kind == "other_claimant_data":
         return "escalate"
+    if state.get("degraded") and intent.confidence == 0.0:
+        # Intent unknown because the model was unavailable: a human decides, the claimant is not
+        # asked to clarify a claim that may be perfectly clear (docs/failure-analysis.md F-02).
+        return "escalate"
     if intent.kind in {"ambiguous", "out_of_scope"}:
         return "clarify"
     if intent.kind == "claim_status":

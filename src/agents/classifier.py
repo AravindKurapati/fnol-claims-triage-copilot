@@ -19,10 +19,10 @@ CLASSIFIER_SYSTEM = """\
 You are a claims-classification specialist at First Notice of Loss.
 
 From the claim facts and the claimant's narrative, determine:
-1. claim_type — the specific loss type. Use one of:
-   auto: collision, theft, glass, fire, third_party_liability
-   property: fire, water_damage, burglary, storm
-   liability: bodily_injury, property_damage
+1. claim_type — the specific loss type, as ONE bare label (no line-of-business prefix).
+   For an auto policy, one of:      collision | theft | glass | fire | third_party_liability
+   For a property policy, one of:   fire | water_damage | burglary | storm
+   For a liability policy, one of:  bodily_injury | property_damage
    Use "unknown" only if the narrative genuinely does not describe a loss.
 2. severity — minor | moderate | major | catastrophic, from the estimated amount:
    minor < 50,000 · moderate 50,000-299,999 · major 300,000-999,999 · catastrophic >= 1,000,000
@@ -35,6 +35,28 @@ on the claim type or severity.
 """
 
 SEVERITY_ORDER = ["minor", "moderate", "major", "catastrophic"]
+
+CLAIM_TYPES: dict[str, set[str]] = {
+    "auto": {"collision", "theft", "glass", "fire", "third_party_liability"},
+    "property": {"fire", "water_damage", "burglary", "storm"},
+    "liability": {"bodily_injury", "property_damage"},
+}
+
+
+def normalise_claim_type(label: str, line_of_business: str) -> str:
+    """Map the model's label onto the line of business's vocabulary, or "unknown".
+
+    The model echoed the prompt's old "auto: collision" layout back as the label, which broke every
+    downstream comparison and polluted the RAG query (docs/failure-analysis.md F-05). The label is a
+    structured field: validate it in code rather than trusting the prompt.
+    """
+    text = (label or "").strip().lower()
+    for lob in CLAIM_TYPES:
+        for sep in (":", " - ", "/", "."):
+            if text.startswith(lob + sep):
+                text = text[len(lob) + len(sep):]
+    text = text.strip(" :-/").replace("-", "_").replace(" ", "_")
+    return text if text in CLAIM_TYPES.get(line_of_business, set()) else "unknown"
 
 
 def severity_from_amount(amount: float) -> str:
@@ -92,7 +114,7 @@ async def classify(state: dict, *, policy: dict[str, Any] | None = None) -> Clas
         sum_insured=(policy or {}).get("sum_insured"),
     )
     return Classification(
-        claim_type=result.claim_type or "unknown",
+        claim_type=normalise_claim_type(result.claim_type, claim.line_of_business),
         severity=severity,
         confidence=result.confidence,
         evidence=result.evidence[:5],
